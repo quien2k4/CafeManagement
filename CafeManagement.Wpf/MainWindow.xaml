@@ -177,20 +177,68 @@
                     </Border>
 
                     <!-- Nút 4: Món & Định Giá -->
-                    <Border Background="Transparent" CornerRadius="8" Padding="15,12" Margin="0,0,0,8" Cursor="Hand"
-                            Visibility="{Binding CurrentSession.IsOwnerOrAdmin, Converter={StaticResource BoolToVis}}">
+                    <Border CornerRadius="8" Padding="15,12" Margin="0,0,0,8" Cursor="Hand"
+                            Visibility="{Binding CanAccessProduct, Converter={StaticResource BoolToVis}}">
+                        <Border.InputBindings>
+                            <MouseBinding Gesture="LeftClick" Command="{Binding SwitchToProductCommand}" />
+                        </Border.InputBindings>
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsProductView}" Value="True">
+                                        <Setter Property="Background" Value="#2B2B40"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="📋" FontSize="16" Margin="0,0,12,0"/>
-                            <TextBlock Text="Món &amp; Định Giá" Foreground="#8A8A9E" VerticalAlignment="Center"/>
+                            <TextBlock Text="Món &amp; Định Giá" FontSize="13" FontWeight="Bold" VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#8A8A9E"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsProductView}" Value="True">
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </StackPanel>
                     </Border>
 
                     <!-- Nút 5: Báo Cáo Doanh Thu -->
-                    <Border Background="Transparent" CornerRadius="8" Padding="15,12" Margin="0,0,0,8" Cursor="Hand"
-                            Visibility="{Binding CurrentSession.IsOwnerOrAdmin, Converter={StaticResource BoolToVis}}">
+                    <Border CornerRadius="8" Padding="15,12" Margin="0,0,0,8" Cursor="Hand"
+                            Visibility="{Binding CanAccessReport, Converter={StaticResource BoolToVis}}">
+                        <Border.InputBindings>
+                            <MouseBinding Gesture="LeftClick" Command="{Binding SwitchToReportCommand}" />
+                        </Border.InputBindings>
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsReportView}" Value="True">
+                                        <Setter Property="Background" Value="#2B2B40"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="📊" FontSize="16" Margin="0,0,12,0"/>
-                            <TextBlock Text="Báo Cáo Doanh Thu" Foreground="#8A8A9E" VerticalAlignment="Center"/>
+                            <TextBlock Text="Báo Cáo Doanh Thu" FontSize="13" FontWeight="Bold" VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#8A8A9E"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsReportView}" Value="True">
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -868,6 +916,477 @@
                     </Grid>
                 </Border>
             </Grid>
+        </Grid>
+
+        <!-- ==================== GIAO DIỆN 4: MÀN HÌNH BÁO CÁO DOANH THU & THỐNG KÊ (REPORT) ==================== -->
+        <Grid Grid.Column="1" Grid.ColumnSpan="2" Margin="25" Visibility="{Binding IsReportView, Converter={StaticResource BoolToVis}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" /> <!-- Header & Bộ lọc thời gian/chi nhánh -->
+                <RowDefinition Height="Auto" /> <!-- 4 Thẻ KPI Thống Kê Tổng Quan -->
+                <RowDefinition Height="*" />    <!-- Bố cục 2 cột: Top Món & Nhật Ký Hóa Đơn -->
+            </Grid.RowDefinitions>
+
+            <!-- 1. Header & Bộ lọc -->
+            <Border Grid.Row="0" Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,15" BorderBrush="#E8ECEF" BorderThickness="1">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                        <TextBlock Text="📊 BÁO CÁO DOANH THU &amp; HIỆU QUẢ BÁN HÀNG" FontWeight="Bold" FontSize="18" Foreground="#2C3E50"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                            <TextBlock Text="Đang lọc: " FontSize="12" Foreground="#7F8C8D"/>
+                            <TextBlock Text="{Binding ReportDateFilterText}" FontSize="12" FontWeight="Bold" Foreground="#FFA726"/>
+                            <TextBlock Text=" | " FontSize="12" Foreground="#BDC3C7" Margin="5,0"/>
+                            <TextBlock Text="{Binding ReportBranchFilterText}" FontSize="12" FontWeight="Bold" Foreground="#2980B9"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Bộ lọc thời gian: Hôm nay, 7 ngày, Tháng này, Tất cả -->
+                        <Border Background="#F1F3F5" CornerRadius="8" Padding="4" Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Hôm nay" Command="{Binding FilterReportByDateCommand}" CommandParameter="TODAY"
+                                        Padding="10,6" Background="Transparent" Foreground="#2C3E50" FontWeight="SemiBold" FontSize="12" BorderThickness="0" Cursor="Hand"/>
+                                <Button Content="7 Ngày" Command="{Binding FilterReportByDateCommand}" CommandParameter="WEEK"
+                                        Padding="10,6" Background="Transparent" Foreground="#2C3E50" FontWeight="SemiBold" FontSize="12" BorderThickness="0" Cursor="Hand"/>
+                                <Button Content="Tháng này" Command="{Binding FilterReportByDateCommand}" CommandParameter="MONTH"
+                                        Padding="10,6" Background="Transparent" Foreground="#2C3E50" FontWeight="SemiBold" FontSize="12" BorderThickness="0" Cursor="Hand"/>
+                                <Button Content="Tất cả" Command="{Binding FilterReportByDateCommand}" CommandParameter="ALL"
+                                        Padding="10,6" Background="Transparent" Foreground="#2C3E50" FontWeight="SemiBold" FontSize="12" BorderThickness="0" Cursor="Hand"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Bộ lọc chi nhánh: Chi nhánh hiện tại vs Toàn chuỗi -->
+                        <Border Background="#F1F3F5" CornerRadius="8" Padding="4" Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Chi nhánh này" Command="{Binding FilterReportByBranchCommand}" CommandParameter="CURRENT"
+                                        Padding="10,6" Background="Transparent" Foreground="#2C3E50" FontWeight="SemiBold" FontSize="12" BorderThickness="0" Cursor="Hand"/>
+                                <Button Content="Toàn chuỗi" Command="{Binding FilterReportByBranchCommand}" CommandParameter="ALL"
+                                        Padding="10,6" Background="Transparent" Foreground="#2C3E50" FontWeight="SemiBold" FontSize="12" BorderThickness="0" Cursor="Hand"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Nút Làm Mới -->
+                        <Button Content="🔄 Làm mới" Command="{Binding RefreshReportCommand}"
+                                Background="#FFA726" Foreground="White" FontWeight="Bold" FontSize="12" Padding="14,8" BorderThickness="0" Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- 2. Hàng 4 Thẻ KPI Tổng Quan -->
+            <Grid Grid.Row="1" Margin="0,0,0,15">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- KPI 1: Tổng Doanh Thu -->
+                <Border Grid.Column="0" Background="White" CornerRadius="12" Padding="18,15" Margin="0,0,10,0" BorderBrush="#E8ECEF" BorderThickness="1">
+                    <Grid>
+                        <StackPanel>
+                            <DockPanel>
+                                <TextBlock Text="💰 TỔNG DOANH THU" FontSize="11" FontWeight="Bold" Foreground="#7F8C8D"/>
+                                <Border Background="#EAFAF1" CornerRadius="10" Padding="6,2" HorizontalAlignment="Right">
+                                    <TextBlock Text="{Binding ReportTotalOrders, StringFormat='{}{0} đơn'}" FontSize="11" FontWeight="Bold" Foreground="#27AE60"/>
+                                </Border>
+                            </DockPanel>
+                            <TextBlock Text="{Binding ReportTotalRevenue, StringFormat='{}{0:N0} đ'}" FontSize="22" FontWeight="Bold" Foreground="#27AE60" Margin="0,8,0,0"/>
+                            <TextBlock Text="Doanh thu thực tế đã thu" FontSize="11" Foreground="#95A5A6" Margin="0,3,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- KPI 2: Tổng Ly Bán Ra -->
+                <Border Grid.Column="1" Background="White" CornerRadius="12" Padding="18,15" Margin="0,0,10,0" BorderBrush="#E8ECEF" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="☕ TỔNG SỐ LY BÁN RA" FontSize="11" FontWeight="Bold" Foreground="#7F8C8D"/>
+                        <TextBlock Text="{Binding ReportTotalCups, StringFormat='{}{0:N0} ly'}" FontSize="22" FontWeight="Bold" Foreground="#E65100" Margin="0,8,0,0"/>
+                        <TextBlock Text="Đồ uống &amp; món đã pha chế" FontSize="11" Foreground="#95A5A6" Margin="0,3,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- KPI 3: Giá Trị Đơn Trung Bình (AOV) -->
+                <Border Grid.Column="2" Background="White" CornerRadius="12" Padding="18,15" Margin="0,0,10,0" BorderBrush="#E8ECEF" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="🧾 GIÁ TRỊ ĐƠN TRUNG BÌNH" FontSize="11" FontWeight="Bold" Foreground="#7F8C8D"/>
+                        <TextBlock Text="{Binding ReportAverageOrderValue, StringFormat='{}{0:N0} đ'}" FontSize="22" FontWeight="Bold" Foreground="#2980B9" Margin="0,8,0,0"/>
+                        <TextBlock Text="Doanh thu / Tổng số đơn" FontSize="11" Foreground="#95A5A6" Margin="0,3,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- KPI 4: Tỷ Trọng Thanh Toán (Tiền Mặt vs VietQR) -->
+                <Border Grid.Column="3" Background="White" CornerRadius="12" Padding="18,15" BorderBrush="#E8ECEF" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="💳 PHƯƠNG THỨC THANH TOÁN" FontSize="11" FontWeight="Bold" Foreground="#7F8C8D"/>
+                        <DockPanel Margin="0,8,0,2">
+                            <TextBlock Text="Tiền mặt:" FontSize="11" Foreground="#2C3E50" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding ReportCashRevenue, StringFormat='{}{0:N0} đ'}" HorizontalAlignment="Right" FontSize="11" FontWeight="Bold" Foreground="#27AE60"/>
+                        </DockPanel>
+                        <DockPanel Margin="0,2,0,0">
+                            <TextBlock Text="VietQR:" FontSize="11" Foreground="#2C3E50" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding ReportQrRevenue, StringFormat='{}{0:N0} đ'}" HorizontalAlignment="Right" FontSize="11" FontWeight="Bold" Foreground="#2980B9"/>
+                        </DockPanel>
+                        <!-- Thanh tỷ lệ % -->
+                        <ProgressBar Height="6" Value="{Binding ReportCashPercent}" Maximum="100" Margin="0,8,0,0" Foreground="#27AE60" Background="#2980B9" BorderThickness="0"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- 3. Bố Cục 2 Cột: Top Món Bán Chạy & Nhật Ký Hóa Đơn -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="4*" /> <!-- Cột Trái: Top Món Bán Chạy -->
+                    <ColumnDefinition Width="6*" /> <!-- Cột Phải: Lịch Sử Hóa Đơn -->
+                </Grid.ColumnDefinitions>
+
+                <!-- Cột Trái: Top 10 Món Bán Chạy Nhất (Best Sellers) -->
+                <Border Grid.Column="0" Background="White" CornerRadius="12" Padding="20" Margin="0,0,15,0" BorderBrush="#E8ECEF" BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <DockPanel Grid.Row="0" Margin="0,0,0,15">
+                            <TextBlock Text="🏆 Top Món Bán Chạy Nhất" FontWeight="Bold" FontSize="15" Foreground="#2C3E50"/>
+                            <TextBlock Text="{Binding ReportTopProducts.Count, StringFormat='({0} món)'}" FontSize="12" Foreground="#7F8C8D" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </DockPanel>
+
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding ReportTopProducts}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="0,0,0,8" Padding="12,10" Background="#F8F9FA" CornerRadius="8" BorderBrush="#EEEEEE" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="45" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <!-- Rank Badge -->
+                                                <TextBlock Grid.Column="0" Text="{Binding RankBadge}" FontWeight="Bold" FontSize="13" VerticalAlignment="Center"/>
+
+                                                <!-- Tên món & Tỷ trọng -->
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="5,0">
+                                                    <TextBlock Text="{Binding ProductName}" FontWeight="Bold" FontSize="13" Foreground="#2C3E50"/>
+                                                    <TextBlock Text="{Binding PercentOfTotal, StringFormat='Chiếm {0:F1}% doanh thu'}" FontSize="11" Foreground="#95A5A6" Margin="0,2,0,0"/>
+                                                </StackPanel>
+
+                                                <!-- Số lượng ly & Tiền -->
+                                                <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding TotalQuantity, StringFormat='{}{0} ly'}" FontWeight="Bold" FontSize="14" Foreground="#E65100" HorizontalAlignment="Right"/>
+                                                    <TextBlock Text="{Binding TotalRevenue, StringFormat='{}{0:N0} đ'}" FontSize="11" Foreground="#7F8C8D" HorizontalAlignment="Right" Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+
+                <!-- Cột Phải: Nhật Ký Hóa Đơn Bán Hàng Gần Nhất -->
+                <Border Grid.Column="1" Background="White" CornerRadius="12" Padding="20" BorderBrush="#E8ECEF" BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <DockPanel Grid.Row="0" Margin="0,0,0,15">
+                            <TextBlock Text="📜 Nhật Ký Đơn Hàng Đã Bán" FontWeight="Bold" FontSize="15" Foreground="#2C3E50"/>
+                            <TextBlock Text="{Binding ReportRecentOrders.Count, StringFormat='(gần nhất {0} đơn)'}" FontSize="12" Foreground="#7F8C8D" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </DockPanel>
+
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding ReportRecentOrders}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="0,0,0,8" Padding="12,10" Background="#FAFAFA" CornerRadius="8" BorderBrush="#EEEEEE" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Dòng 1: Mã HĐ, Giờ thanh toán, Hình thức -->
+                                                <DockPanel Grid.Row="0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding OrderNumber, StringFormat='#{0}'}" FontWeight="Bold" FontSize="13" Foreground="#2C3E50"/>
+                                                        <TextBlock Text="{Binding CreatedAt, StringFormat='{}{0:dd/MM HH:mm}'}" FontSize="11" Foreground="#7F8C8D" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding BranchName, StringFormat='- {0}'}" FontSize="11" Foreground="#95A5A6" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+
+                                                    <Border HorizontalAlignment="Right" CornerRadius="4" Padding="6,2">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="#EAFAF1"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding PaymentMethod}" Value="VIETQR">
+                                                                        <Setter Property="Background" Value="#EBF5FB"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <TextBlock Text="{Binding PaymentMethodDisplay}" FontSize="10" FontWeight="Bold">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="#27AE60"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding PaymentMethod}" Value="VIETQR">
+                                                                            <Setter Property="Foreground" Value="#2980B9"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Border>
+                                                </DockPanel>
+
+                                                <!-- Dòng 2: Món đã mua & Tổng tiền -->
+                                                <DockPanel Grid.Row="1" Margin="0,6,0,0">
+                                                    <StackPanel DockPanel.Dock="Left">
+                                                        <TextBlock Text="{Binding ItemsSummary}" FontSize="12" Foreground="#4A5568" TextTrimming="CharacterEllipsis" MaxWidth="360"/>
+                                                        <TextBlock Text="{Binding CashierName, StringFormat='Thu ngân: {0}'}" FontSize="11" Foreground="#A0AEC0" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding FinalAmount, StringFormat='{}{0:N0} đ'}" 
+                                                               FontWeight="Bold" FontSize="15" Foreground="#27AE60" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                </DockPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- ==================== GIAO DIỆN 5: MÀN HÌNH QUẢN LÝ MÓN NƯỚC, GIÁ & CÔNG THỨC PHA CHẾ (BOM) ==================== -->
+        <Grid Grid.Column="1" Grid.ColumnSpan="2" Margin="25" Visibility="{Binding IsProductView, Converter={StaticResource BoolToVis}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" /> <!-- Header & Bộ lọc nhóm món -->
+                <RowDefinition Height="*" />    <!-- Bảng danh sách món nước -->
+            </Grid.RowDefinitions>
+
+            <!-- 1. Header & Nút tác vụ -->
+            <Grid Grid.Row="0" Margin="0,0,0,20">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Tiêu đề & Nút Thêm mới -->
+                <DockPanel Grid.Row="0">
+                    <StackPanel DockPanel.Dock="Left">
+                        <TextBlock Text="📋 QUẢN LÝ DANH MỤC MÓN, GIÁ &amp; CÔNG THỨC (BOM)" FontSize="20" FontWeight="Bold" Foreground="#2C3E50"/>
+                        <TextBlock Text="Cấu hình thực đơn toàn chuỗi • Thiết lập giá bán cơ bản, phụ thu kích cỡ &amp; định mức nguyên liệu tiêu hao" FontSize="12" Foreground="#7F8C8D" Margin="0,4,0,0"/>
+                    </StackPanel>
+
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="➕ Thêm Món Mới" Command="{Binding OpenAddProductDialogCommand}"
+                                Background="#E67E22" Foreground="White" FontWeight="Bold" FontSize="13"
+                                Padding="16,10" Cursor="Hand" BorderThickness="0">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
+                        <Button Content="🔄 Làm mới" Command="{Binding LoadManagementProductsCommand}"
+                                Background="#34495E" Foreground="White" FontWeight="Bold" FontSize="13"
+                                Padding="16,10" Margin="10,0,0,0" Cursor="Hand" BorderThickness="0">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                    </StackPanel>
+                </DockPanel>
+
+                <!-- Thanh phân loại nhóm món (Categories Filter) -->
+                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,15,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <!-- Nút Tất cả -->
+                        <Button Content="Tất cả món" Command="{Binding FilterManagementProductsCommand}" CommandParameter="{x:Null}"
+                                Padding="16,8" Margin="0,0,8,0" FontWeight="Bold" FontSize="12" Cursor="Hand" BorderThickness="0">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Background" Value="#E8ECEF"/>
+                                    <Setter Property="Foreground" Value="#2C3E50"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedManagementCategory}" Value="{x:Null}">
+                                            <Setter Property="Background" Value="#2C3E50"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="6"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
+                        <!-- Danh sách các nhóm món -->
+                        <ItemsControl ItemsSource="{Binding ManagementCategories}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Content="{Binding CategoryName}" 
+                                            Command="{Binding DataContext.FilterManagementProductsCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            Padding="16,8" Margin="0,0,8,0" FontWeight="Bold" FontSize="12" Cursor="Hand" BorderThickness="0" Background="#E8ECEF" Foreground="#2C3E50">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="6"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- 2. Danh sách món nước & Quản trị BOM -->
+            <Border Grid.Row="1" Background="White" CornerRadius="12" Padding="20" BorderBrush="#E8ECEF" BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" /> <!-- Tiêu đề cột -->
+                        <RowDefinition Height="*" />    <!-- Danh sách -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Tiêu đề cột -->
+                    <Border Grid.Row="0" Background="#F8F9FA" Padding="15,12" CornerRadius="8" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2.5*" /> <!-- Mã & Tên món -->
+                                <ColumnDefinition Width="1.2*" /> <!-- Nhóm món -->
+                                <ColumnDefinition Width="1.8*" /> <!-- Giá & Biến thể -->
+                                <ColumnDefinition Width="1.2*" /> <!-- Trạng thái -->
+                                <ColumnDefinition Width="2.2*" /> <!-- Thao tác -->
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="MÃ &amp; TÊN MÓN NƯỚC" FontWeight="Bold" FontSize="11" Foreground="#7F8C8D"/>
+                            <TextBlock Grid.Column="1" Text="NHÓM DANH MỤC" FontWeight="Bold" FontSize="11" Foreground="#7F8C8D"/>
+                            <TextBlock Grid.Column="2" Text="GIÁ BÁN (SIZE M &amp; L)" FontWeight="Bold" FontSize="11" Foreground="#7F8C8D"/>
+                            <TextBlock Grid.Column="3" Text="TRẠNG THÁI" FontWeight="Bold" FontSize="11" Foreground="#7F8C8D"/>
+                            <TextBlock Grid.Column="4" Text="THAO TÁC QUẢN TRỊ" FontWeight="Bold" FontSize="11" Foreground="#7F8C8D" HorizontalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Danh sách món nước -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding ManagedProducts}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,8" Padding="15,12" Background="#FAFAFA" CornerRadius="8" BorderBrush="#EEEEEE" BorderThickness="1">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="2.5*" /> <!-- Mã & Tên món -->
+                                                <ColumnDefinition Width="1.2*" /> <!-- Nhóm món -->
+                                                <ColumnDefinition Width="1.8*" /> <!-- Giá & Biến thể -->
+                                                <ColumnDefinition Width="1.2*" /> <!-- Trạng thái -->
+                                                <ColumnDefinition Width="2.2*" /> <!-- Thao tác -->
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- 1. Tên món & Mã -->
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                <TextBlock Text="{Binding ProductName}" FontWeight="Bold" FontSize="14" Foreground="#2C3E50"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                    <Border Background="#EAEDED" CornerRadius="4" Padding="4,2" Margin="0,0,6,0">
+                                                        <TextBlock Text="{Binding ProductCode}" FontSize="11" FontWeight="Bold" Foreground="#7F8C8D"/>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Description}" FontSize="11" Foreground="#95A5A6" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <!-- 2. Nhóm danh mục -->
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <Border Background="#EBF5FB" CornerRadius="6" Padding="8,4" HorizontalAlignment="Left">
+                                                    <TextBlock Text="{Binding CategoryName}" FontWeight="Bold" FontSize="12" Foreground="#2980B9"/>
+                                                </Border>
+                                            </StackPanel>
+
+                                            <!-- 3. Giá bán & Biến thể -->
+                                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding BasePrice, StringFormat='{}{0:N0} đ'}" FontWeight="Bold" FontSize="15" Foreground="#D35400"/>
+                                                <TextBlock Text="{Binding VariantsDisplay}" FontSize="11" Foreground="#7F8C8D" Margin="0,2,0,0"/>
+                                            </StackPanel>
+
+                                            <!-- 4. Trạng thái -->
+                                            <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding StatusBadge}" FontWeight="Bold" FontSize="12" Foreground="{Binding StatusColor}"/>
+                                            </StackPanel>
+
+                                            <!-- 5. Các nút thao tác -->
+                                            <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <!-- Nút Sửa -->
+                                                <Button Content="✏️ Sửa" 
+                                                        Command="{Binding DataContext.OpenEditProductDialogCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Background="#3498DB" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                        Padding="10,6" Margin="0,0,6,0" Cursor="Hand" BorderThickness="0">
+                                                    <Button.Resources>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="CornerRadius" Value="6"/>
+                                                        </Style>
+                                                    </Button.Resources>
+                                                </Button>
+
+                                                <!-- Nút Công thức (BOM) -->
+                                                <Button Content="⚙️ Công Thức" 
+                                                        Command="{Binding DataContext.OpenRecipeConfigDialogCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Background="#8E44AD" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                        Padding="10,6" Margin="0,0,6,0" Cursor="Hand" BorderThickness="0">
+                                                    <Button.Resources>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="CornerRadius" Value="6"/>
+                                                        </Style>
+                                                    </Button.Resources>
+                                                </Button>
+
+                                                <!-- Nút Bật/Tắt -->
+                                                <Button Content="Bật/Tắt" 
+                                                        Command="{Binding DataContext.ToggleProductActiveCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Background="#7F8C8D" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                        Padding="8,6" Cursor="Hand" BorderThickness="0">
+                                                    <Button.Resources>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="CornerRadius" Value="6"/>
+                                                        </Style>
+                                                    </Button.Resources>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
         </Grid>
     </Grid>
 </Window>

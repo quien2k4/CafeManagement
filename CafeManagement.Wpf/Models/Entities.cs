@@ -300,7 +300,11 @@ public class Order
     public DateTime? HeldAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    [ForeignKey(nameof(BranchId))]
+    public Branch? Branch { get; set; }
+
     public List<OrderItem> Items { get; set; } = [];
+    public List<Payment> Payments { get; set; } = [];
 }
 
 [Table("OrderItems")]

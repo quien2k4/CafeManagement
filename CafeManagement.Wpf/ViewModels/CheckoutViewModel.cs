@@ -22,7 +22,7 @@ public partial class CheckoutViewModel : ObservableObject
     public bool IsQrMode => PaymentMethod == "VIETQR";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ChangeAmount))]
+    [NotifyPropertyChangedFor(nameof(ChangeAmount))]    
     [NotifyPropertyChangedFor(nameof(IsCashValid))]
     [NotifyPropertyChangedFor(nameof(CustomerGivenAmountDisplay))]
     private decimal _customerGivenAmount;

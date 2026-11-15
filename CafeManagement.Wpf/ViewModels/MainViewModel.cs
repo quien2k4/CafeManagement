@@ -89,6 +89,8 @@ public partial class MainViewModel : ObservableObject
     public bool CanAccessPos => CurrentSession.CanAccessPos;
     public bool CanAccessKds => CurrentSession.CanAccessKds;
     public bool CanAccessInventory => CurrentSession.CanAccessInventory;
+    public bool CanAccessReport => CurrentSession.IsOwnerOrAdmin || CurrentSession.RoleCode == "BRANCH_MANAGER";
+    public bool CanAccessProduct => CurrentSession.IsOwnerOrAdmin || CurrentSession.RoleCode == "BRANCH_MANAGER";
 
     public event Action? RequestLogout;
 
@@ -97,11 +99,15 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsPosView))]
     [NotifyPropertyChangedFor(nameof(IsKdsView))]
     [NotifyPropertyChangedFor(nameof(IsInventoryView))]
+    [NotifyPropertyChangedFor(nameof(IsReportView))]
+    [NotifyPropertyChangedFor(nameof(IsProductView))]
     private string _currentView = "POS"; // "POS", "KDS", "INVENTORY", "PRODUCT", "REPORT"
 
     public bool IsPosView => CurrentView == "POS";
     public bool IsKdsView => CurrentView == "KDS";
     public bool IsInventoryView => CurrentView == "INVENTORY";
+    public bool IsReportView => CurrentView == "REPORT";
+    public bool IsProductView => CurrentView == "PRODUCT";
 
     [ObservableProperty]
     private string _branchName = "Chi nhánh Quận 1 (BR01)";
@@ -167,6 +173,65 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private int _lowStockCount = 0;
 
+    // 5. DỮ LIỆU BÁO CÁO DOANH THU & THỐNG KÊ (REPORT)
+    [ObservableProperty]
+    private decimal _reportTotalRevenue = 0;
+
+    [ObservableProperty]
+    private int _reportTotalOrders = 0;
+
+    [ObservableProperty]
+    private int _reportTotalCups = 0;
+
+    [ObservableProperty]
+    private decimal _reportAverageOrderValue = 0;
+
+    [ObservableProperty]
+    private decimal _reportCashRevenue = 0;
+
+    [ObservableProperty]
+    private int _reportCashCount = 0;
+
+    [ObservableProperty]
+    private double _reportCashPercent = 50;
+
+    [ObservableProperty]
+    private decimal _reportQrRevenue = 0;
+
+    [ObservableProperty]
+    private int _reportQrCount = 0;
+
+    [ObservableProperty]
+    private double _reportQrPercent = 50;
+
+    [ObservableProperty]
+    private ObservableCollection<TopProductItemViewModel> _reportTopProducts = [];
+
+    [ObservableProperty]
+    private ObservableCollection<OrderReportItemViewModel> _reportRecentOrders = [];
+
+    [ObservableProperty]
+    private string _reportDateFilter = "ALL"; // TODAY, WEEK, MONTH, ALL
+
+    [ObservableProperty]
+    private string _reportDateFilterText = "Tất cả thời gian";
+
+    [ObservableProperty]
+    private string _reportBranchFilter = "CURRENT"; // CURRENT, ALL
+
+    [ObservableProperty]
+    private string _reportBranchFilterText = "Chi nhánh hiện tại";
+
+    // 6. DỮ LIỆU QUẢN LÝ MÓN & BẢNG GIÁ (PRODUCT MANAGEMENT)
+    [ObservableProperty]
+    private ObservableCollection<ProductManagementItemViewModel> _managedProducts = [];
+
+    [ObservableProperty]
+    private ObservableCollection<ProductCategory> _managementCategories = [];
+
+    [ObservableProperty]
+    private ProductCategory? _selectedManagementCategory;
+
     public MainViewModel() : this(null)
     {
     }
@@ -221,6 +286,20 @@ public partial class MainViewModel : ObservableObject
     {
         CurrentView = "INVENTORY";
         await RefreshInventoryAsync();
+    }
+
+    [RelayCommand]
+    public async Task SwitchToReport()
+    {
+        CurrentView = "REPORT";
+        await LoadReportDataAsync();
+    }
+
+    [RelayCommand]
+    public async Task SwitchToProduct()
+    {
+        CurrentView = "PRODUCT";
+        await LoadManagementProductsAsync();
     }
 
     // ==================== LOGIC BÁN HÀNG POS & SEEDING ====================
@@ -713,33 +792,55 @@ public partial class MainViewModel : ObservableObject
 
                 // Xác định lượng tiêu hao nguyên liệu dựa theo món và size
                 var deductions = new List<(string IngCode, decimal Amount)>();
-                string pCode = variant.Product?.ProductCode ?? "";
-                bool isSizeL = variant.Size == "L";
 
-                if (pCode.Contains("CF_SUA_DA"))
+                // 1. Ưu tiên kiểm tra công thức BOM đã cấu hình trong CSDL (Recipes -> RecipeVersions -> RecipeDetails)
+                var recipeVersion = await _db.RecipeVersions
+                    .Include(rv => rv.Details)
+                        .ThenInclude(d => d.Ingredient)
+                    .Where(rv => rv.Recipe!.VariantId == variant.VariantId && rv.IsCurrent)
+                    .FirstOrDefaultAsync();
+
+                if (recipeVersion != null && recipeVersion.Details.Count > 0)
                 {
-                    deductions.Add(("ING_ROBUSTA", isSizeL ? 35 : 25));
-                    deductions.Add(("ING_SUADAC", isSizeL ? 50 : 40));
-                    deductions.Add(("ING_DA_VIEN", isSizeL ? 200 : 150));
+                    foreach (var detail in recipeVersion.Details)
+                    {
+                        if (detail.Ingredient != null)
+                        {
+                            deductions.Add((detail.Ingredient.IngredientCode, detail.Quantity));
+                        }
+                    }
                 }
-                else if (pCode.Contains("CF_BAC_XIU"))
+                else
                 {
-                    deductions.Add(("ING_ROBUSTA", isSizeL ? 20 : 15));
-                    deductions.Add(("ING_SUADAC", isSizeL ? 50 : 40));
-                    deductions.Add(("ING_SUATUOI", isSizeL ? 130 : 100));
-                    deductions.Add(("ING_DA_VIEN", isSizeL ? 200 : 150));
-                }
-                else if (pCode.Contains("TEA_DAO_CAM_SA"))
-                {
-                    deductions.Add(("ING_TRA_DEN", isSizeL ? 200 : 150));
-                    deductions.Add(("ING_DAO_MIENG", isSizeL ? 60 : 40));
-                    deductions.Add(("ING_DA_VIEN", isSizeL ? 200 : 150));
-                }
-                else if (pCode.Contains("TEA_SUA_OOLONG"))
-                {
-                    deductions.Add(("ING_TRA_OOLONG", isSizeL ? 200 : 150));
-                    deductions.Add(("ING_SUADAC", isSizeL ? 50 : 40));
-                    deductions.Add(("ING_DA_VIEN", isSizeL ? 200 : 150));
+                    // Fallback theo định lượng mặc định
+                    string pCode = variant.Product?.ProductCode ?? "";
+                    bool isSizeL = variant.Size == "L";
+
+                    if (pCode.Contains("CF_SUA_DA"))
+                    {
+                        deductions.Add(("ING_ROBUSTA", isSizeL ? 35 : 25));
+                        deductions.Add(("ING_SUADAC", isSizeL ? 50 : 40));
+                        deductions.Add(("ING_DA_VIEN", isSizeL ? 200 : 150));
+                    }
+                    else if (pCode.Contains("CF_BAC_XIU"))
+                    {
+                        deductions.Add(("ING_ROBUSTA", isSizeL ? 20 : 15));
+                        deductions.Add(("ING_SUADAC", isSizeL ? 50 : 40));
+                        deductions.Add(("ING_SUATUOI", isSizeL ? 130 : 100));
+                        deductions.Add(("ING_DA_VIEN", isSizeL ? 200 : 150));
+                    }
+                    else if (pCode.Contains("TEA_DAO_CAM_SA"))
+                    {
+                        deductions.Add(("ING_TRA_DEN", isSizeL ? 200 : 150));
+                        deductions.Add(("ING_DAO_MIENG", isSizeL ? 60 : 40));
+                        deductions.Add(("ING_DA_VIEN", isSizeL ? 200 : 150));
+                    }
+                    else if (pCode.Contains("TEA_SUA_OOLONG"))
+                    {
+                        deductions.Add(("ING_TRA_OOLONG", isSizeL ? 200 : 150));
+                        deductions.Add(("ING_SUADAC", isSizeL ? 50 : 40));
+                        deductions.Add(("ING_DA_VIEN", isSizeL ? 200 : 150));
+                    }
                 }
 
                 // Tiêu hao từ Topping đi kèm
@@ -1131,6 +1232,308 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             MessageBox.Show($"Lỗi nhập kho: {ex.Message}", "Lỗi Nhập Kho", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    // ==================== LOGIC BÁO CÁO DOANH THU & THỐNG KÊ (REPORT) ====================
+    [RelayCommand]
+    public async Task FilterReportByDate(string filter)
+    {
+        ReportDateFilter = filter;
+        ReportDateFilterText = filter switch
+        {
+            "TODAY" => "Hôm nay",
+            "WEEK" => "7 ngày qua",
+            "MONTH" => "Tháng này",
+            _ => "Tất cả thời gian"
+        };
+        await LoadReportDataAsync();
+    }
+
+    [RelayCommand]
+    public async Task FilterReportByBranch(string filter)
+    {
+        ReportBranchFilter = filter;
+        ReportBranchFilterText = filter == "ALL" ? "Toàn chuỗi (Tất cả chi nhánh)" : "Chi nhánh hiện tại";
+        await LoadReportDataAsync();
+    }
+
+    [RelayCommand]
+    public async Task LoadReportDataAsync()
+    {
+        try
+        {
+            var query = _db.Orders
+                .Include(o => o.Items)
+                    .ThenInclude(i => i.Variant)
+                        .ThenInclude(v => v!.Product)
+                .Include(o => o.Payments)
+                .Include(o => o.Branch)
+                .Where(o => o.OrderStatus == "PAID" || o.OrderStatus == "PREPARING" || o.OrderStatus == "READY" || o.OrderStatus == "SERVED");
+
+            // 1. Lọc theo Chi nhánh
+            if (ReportBranchFilter == "CURRENT" && CurrentSession.BranchId > 0)
+            {
+                query = query.Where(o => o.BranchId == CurrentSession.BranchId);
+            }
+
+            // 2. Lọc theo Ngày
+            var now = DateTime.UtcNow;
+            if (ReportDateFilter == "TODAY")
+            {
+                var todayStart = DateTime.UtcNow.Date;
+                query = query.Where(o => o.CreatedAt >= todayStart);
+            }
+            else if (ReportDateFilter == "WEEK")
+            {
+                var weekStart = DateTime.UtcNow.Date.AddDays(-7);
+                query = query.Where(o => o.CreatedAt >= weekStart);
+            }
+            else if (ReportDateFilter == "MONTH")
+            {
+                var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                query = query.Where(o => o.CreatedAt >= monthStart);
+            }
+
+            var orders = await query.OrderByDescending(o => o.CreatedAt).ToListAsync();
+
+            // 3. Tính toán các chỉ số KPI
+            ReportTotalOrders = orders.Count;
+            ReportTotalRevenue = orders.Sum(o => o.FinalAmount);
+            ReportTotalCups = orders.Sum(o => o.Items.Sum(i => i.Quantity));
+            ReportAverageOrderValue = ReportTotalOrders > 0 ? Math.Round(ReportTotalRevenue / ReportTotalOrders, 0) : 0;
+
+            // 4. Tỷ trọng Tiền mặt vs VietQR
+            var allPayments = orders.SelectMany(o => o.Payments).ToList();
+            var cashPayments = allPayments.Where(p => p.PaymentMethod == "CASH").ToList();
+            var qrPayments = allPayments.Where(p => p.PaymentMethod == "VIETQR").ToList();
+
+            ReportCashRevenue = cashPayments.Sum(p => p.Amount);
+            ReportCashCount = cashPayments.Count;
+
+            ReportQrRevenue = qrPayments.Sum(p => p.Amount);
+            ReportQrCount = qrPayments.Count;
+
+            decimal totalPaymentAmount = ReportCashRevenue + ReportQrRevenue;
+            if (totalPaymentAmount > 0)
+            {
+                ReportCashPercent = Math.Round((double)(ReportCashRevenue / totalPaymentAmount) * 100.0, 1);
+                ReportQrPercent = Math.Round((double)(ReportQrRevenue / totalPaymentAmount) * 100.0, 1);
+            }
+            else
+            {
+                ReportCashPercent = 50;
+                ReportQrPercent = 50;
+            }
+
+            // 5. Xếp hạng Top 10 món bán chạy nhất (Best Sellers)
+            var productSales = orders
+                .SelectMany(o => o.Items)
+                .GroupBy(i => i.Variant?.Product?.ProductName ?? "Món nước")
+                .Select(g => new
+                {
+                    ProductName = g.Key,
+                    Quantity = g.Sum(x => x.Quantity),
+                    Revenue = g.Sum(x => x.SubTotal)
+                })
+                .OrderByDescending(x => x.Quantity)
+                .Take(10)
+                .ToList();
+
+            int rank = 1;
+            var topList = productSales.Select(p => new TopProductItemViewModel
+            {
+                Rank = rank++,
+                ProductName = p.ProductName,
+                TotalQuantity = p.Quantity,
+                TotalRevenue = p.Revenue,
+                PercentOfTotal = ReportTotalRevenue > 0 ? Math.Round((double)(p.Revenue / ReportTotalRevenue) * 100.0, 1) : 0
+            }).ToList();
+
+            ReportTopProducts = new ObservableCollection<TopProductItemViewModel>(topList);
+
+            // 6. Lịch sử hóa đơn bán hàng gần nhất
+            var cashiers = await _db.UserAccounts.Include(u => u.Employee).ToDictionaryAsync(u => u.UserId, u => u.Employee?.FullName ?? u.Username);
+
+            var recent = orders.Take(25).Select(o =>
+            {
+                string cName = cashiers.TryGetValue(o.CashierUserId, out var cn) ? cn : $"Thu ngân #{o.CashierUserId}";
+                string pMethod = o.Payments.FirstOrDefault()?.PaymentMethod ?? "CASH";
+                string summary = string.Join(", ", o.Items.Select(i => $"{i.Quantity}x {i.Variant?.Product?.ProductName}"));
+
+                return new OrderReportItemViewModel
+                {
+                    OrderNumber = o.OrderNumber,
+                    CreatedAt = o.CreatedAt.ToLocalTime(),
+                    CashierName = cName,
+                    BranchName = o.Branch?.BranchName ?? "Chi nhánh",
+                    PaymentMethod = pMethod,
+                    ItemsSummary = summary,
+                    FinalAmount = o.FinalAmount
+                };
+            }).ToList();
+
+            ReportRecentOrders = new ObservableCollection<OrderReportItemViewModel>(recent);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi tải dữ liệu báo cáo: {ex.Message}", "Lỗi Báo Cáo", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    // ==================== 6. QUẢN LÝ MÓN NƯỚC, GIÁ & CÔNG THỨC PHA CHẾ (BOM) ====================
+    private List<ProductManagementItemViewModel> _allManagedProducts = [];
+
+    [RelayCommand]
+    public async Task LoadManagementProductsAsync()
+    {
+        try
+        {
+            var cats = await _db.ProductCategories
+                .OrderBy(c => c.DisplayOrder)
+                .ToListAsync();
+            ManagementCategories = new ObservableCollection<ProductCategory>(cats);
+
+            var products = await _db.Products
+                .Include(p => p.Category)
+                .Include(p => p.Variants)
+                .OrderByDescending(p => p.ProductId)
+                .ToListAsync();
+
+            _allManagedProducts = products.Select(p => new ProductManagementItemViewModel
+            {
+                ProductId = p.ProductId,
+                ProductCode = p.ProductCode,
+                ProductName = p.ProductName,
+                CategoryName = p.Category?.CategoryName ?? "Khác",
+                BasePrice = p.BasePrice,
+                Description = p.Description ?? "",
+                IsActive = p.IsActive,
+                VariantsDisplay = string.Join(" | ", p.Variants.OrderBy(v => v.Size).Select(v => $"Size {v.Size}: +{v.ExtraPrice:N0} đ")),
+                Product = p
+            }).ToList();
+
+            FilterManagementProducts(SelectedManagementCategory);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi tải danh mục món: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
+    public void FilterManagementProducts(ProductCategory? cat)
+    {
+        SelectedManagementCategory = cat;
+        if (cat == null)
+        {
+            ManagedProducts = new ObservableCollection<ProductManagementItemViewModel>(_allManagedProducts);
+        }
+        else
+        {
+            ManagedProducts = new ObservableCollection<ProductManagementItemViewModel>(
+                _allManagedProducts.Where(p => p.Product.CategoryId == cat.CategoryId));
+        }
+    }
+
+    [RelayCommand]
+    public async Task OpenAddProductDialogAsync()
+    {
+        try
+        {
+            var categories = await _db.ProductCategories.OrderBy(c => c.DisplayOrder).ToListAsync();
+            var dlg = new ProductEditWindow(categories);
+            if (dlg.ShowDialog() == true && dlg.ProductToSave != null)
+            {
+                _db.Products.Add(dlg.ProductToSave);
+                await _db.SaveChangesAsync();
+
+                await LoadDataAsync();
+                await LoadManagementProductsAsync();
+
+                MessageBox.Show($"🎉 Đã thêm thành công món '{dlg.ProductToSave.ProductName}' vào thực đơn!", 
+                    "Thêm Món Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi thêm món: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
+    public async Task OpenEditProductDialogAsync(ProductManagementItemViewModel? item)
+    {
+        if (item == null) return;
+        try
+        {
+            var categories = await _db.ProductCategories.OrderBy(c => c.DisplayOrder).ToListAsync();
+            var product = await _db.Products
+                .Include(p => p.Variants)
+                .FirstOrDefaultAsync(p => p.ProductId == item.ProductId);
+
+            if (product == null) return;
+
+            var dlg = new ProductEditWindow(categories, product);
+            if (dlg.ShowDialog() == true)
+            {
+                await _db.SaveChangesAsync();
+
+                await LoadDataAsync();
+                await LoadManagementProductsAsync();
+
+                MessageBox.Show($"🎉 Đã cập nhật thành công món '{product.ProductName}'!", 
+                    "Cập Nhật Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi cập nhật món: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
+    public async Task OpenRecipeConfigDialogAsync(ProductManagementItemViewModel? item)
+    {
+        if (item == null) return;
+        try
+        {
+            var product = await _db.Products
+                .Include(p => p.Variants)
+                .FirstOrDefaultAsync(p => p.ProductId == item.ProductId);
+
+            if (product == null) return;
+
+            var ingredients = await _db.Ingredients.OrderBy(i => i.IngredientName).ToListAsync();
+            var dlg = new RecipeConfigWindow(product, ingredients);
+            dlg.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi cấu hình công thức: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
+    public async Task ToggleProductActiveAsync(ProductManagementItemViewModel? item)
+    {
+        if (item == null) return;
+        try
+        {
+            var product = await _db.Products.FindAsync(item.ProductId);
+            if (product != null)
+            {
+                product.IsActive = !product.IsActive;
+                await _db.SaveChangesAsync();
+                item.IsActive = product.IsActive;
+
+                // Cập nhật lại menu bán hàng POS
+                await LoadDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi đổi trạng thái món: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 }
