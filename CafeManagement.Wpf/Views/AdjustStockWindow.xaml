@@ -1,0 +1,107 @@
+<Window x:Class="CafeManagement.Wpf.Views.AdjustStockWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Điều Chỉnh / Kiểm Kê Tồn Kho" Height="530" Width="500"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#F8F9FA" FontFamily="Segoe UI">
+    <Grid Margin="25">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Tiêu đề -->
+        <Border Grid.Row="0" Background="White" CornerRadius="8" Padding="15,12" Margin="0,0,0,15" BorderBrush="#E8ECEF" BorderThickness="1">
+            <StackPanel>
+                <TextBlock Text="⚖️ KIỂM KÊ &amp; ĐIỀU CHỈNH SỐ LƯỢNG TỒN KHO" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/>
+                <TextBlock Text="Cập nhật số lượng thực tế và lưu vết nhật ký thẻ kho (Audit Log)" FontSize="11" Foreground="#7F8C8D" Margin="0,3,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Form chi tiết -->
+        <Border Grid.Row="1" Background="White" CornerRadius="8" Padding="20" BorderBrush="#E8ECEF" BorderThickness="1">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- Tên nguyên liệu & Tồn hiện tại -->
+                    <Border Background="#F1F3F5" CornerRadius="6" Padding="12" Margin="0,0,0,15">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock x:Name="TxtIngredientName" Text="Cà phê Robusta mộc" FontWeight="Bold" FontSize="15" Foreground="#2C3E50"/>
+                                <TextBlock x:Name="TxtIngredientCode" Text="Mã: ING_ROBUSTA" FontSize="11" Foreground="#7F8C8D" Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <TextBlock Text="Tồn sổ sách hiện tại:" FontSize="11" Foreground="#7F8C8D" HorizontalAlignment="Right"/>
+                                <TextBlock x:Name="TxtCurrentStock" Text="5,000.0 g" FontWeight="Bold" FontSize="16" Foreground="#2980B9" HorizontalAlignment="Right"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Số lượng kiểm kê thực tế mới -->
+                    <TextBlock Text="Số lượng thực tế sau kiểm kê (*):" FontWeight="SemiBold" FontSize="12" Foreground="#2C3E50" Margin="0,0,0,5"/>
+                    <Grid Margin="0,0,0,5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="60"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="TxtNewQuantity" Grid.Column="0" Height="40" Padding="10,0" VerticalContentAlignment="Center"
+                                 FontSize="15" FontWeight="Bold" BorderBrush="#BDC3C7" TextChanged="TxtNewQuantity_TextChanged"/>
+                        <Border Grid.Column="1" Background="#E8ECEF" CornerRadius="0,4,4,0" BorderBrush="#BDC3C7" BorderThickness="0,1,1,1">
+                            <TextBlock x:Name="TxtUom" Text="g" FontWeight="Bold" FontSize="13" Foreground="#2C3E50" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
+
+                    <!-- Chênh lệch so với sổ sách -->
+                    <Border x:Name="BrdDiff" Background="#EAFAF1" CornerRadius="6" Padding="10,8" Margin="0,0,0,15">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Chênh lệch: " FontWeight="SemiBold" FontSize="12" Foreground="#2C3E50"/>
+                            <TextBlock x:Name="TxtDifference" Text="0.0 g (Không thay đổi)" FontWeight="Bold" FontSize="13" Foreground="#27AE60"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Lý do điều chỉnh -->
+                    <TextBlock Text="Lý do điều chỉnh (*):" FontWeight="SemiBold" FontSize="12" Foreground="#2C3E50" Margin="0,0,0,5"/>
+                    <ComboBox x:Name="CboReason" Height="38" FontSize="12" VerticalContentAlignment="Center" Margin="0,0,0,10">
+                        <ComboBoxItem Content="Kiểm kê định kỳ phát hiện chênh lệch" IsSelected="True"/>
+                        <ComboBoxItem Content="Hư hỏng / Rơi vãi / Đổ vỡ trong ca pha chế"/>
+                        <ComboBoxItem Content="Cân chỉnh lại sai số kiểm kê"/>
+                        <ComboBoxItem Content="Nguyên liệu hết hạn sử dụng (Xuất hủy)"/>
+                        <ComboBoxItem Content="Điều chỉnh khác"/>
+                    </ComboBox>
+
+                    <!-- Ghi chú chi tiết -->
+                    <TextBlock Text="Ghi chú thêm (tùy chọn):" FontWeight="SemiBold" FontSize="12" Foreground="#2C3E50" Margin="0,0,0,5"/>
+                    <TextBox x:Name="TxtNote" Height="50" Padding="8" AcceptsReturn="True" TextWrapping="Wrap"
+                             FontSize="12" BorderBrush="#BDC3C7" Text="Kiểm kê thực tế tại quầy kho"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Nút thao tác -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="Hủy bỏ" Click="Cancel_Click" Width="100" Height="40" Background="#95A5A6" Foreground="White"
+                    FontWeight="SemiBold" FontSize="13" BorderThickness="0" Margin="0,0,10,0" Cursor="Hand">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="6"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+
+            <Button Content="⚖️ Xác Nhận Điều Chỉnh" Click="Confirm_Click" Width="180" Height="40" Background="#E67E22" Foreground="White"
+                    FontWeight="Bold" FontSize="13" BorderThickness="0" Cursor="Hand">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="6"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>

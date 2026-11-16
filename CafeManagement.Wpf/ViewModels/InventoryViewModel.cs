@@ -57,4 +57,34 @@ public class InventoryTransactionItemViewModel
     public bool IsIncrease => QuantityChange > 0;
     public bool CanCancel => TransactionType == "GOODS_RECEIPT" && QuantityChange > 0;
     public bool IsCancelled => TransactionType == "RECEIPT_CANCELLED";
+
+    public string TransactionTypeBadge => TransactionType switch
+    {
+        "GOODS_RECEIPT" => "📥 Nhập kho",
+        "SALE_CONSUMPTION" => "☕ Bán hàng",
+        "STOCK_ADJUSTMENT" => "⚖️ Điều chỉnh",
+        "INITIAL_STOCK" => "🌱 Tồn ban đầu",
+        "RECEIPT_CANCELLED" => "❌ Đã hủy",
+        _ => TransactionType
+    };
+
+    public string TransactionColor => TransactionType switch
+    {
+        "GOODS_RECEIPT" => "#27AE60",
+        "SALE_CONSUMPTION" => "#C0392B",
+        "STOCK_ADJUSTMENT" => "#D35400",
+        "INITIAL_STOCK" => "#2980B9",
+        "RECEIPT_CANCELLED" => "#7F8C8D",
+        _ => "#2C3E50"
+    };
+
+    public string TransactionBackground => TransactionType switch
+    {
+        "GOODS_RECEIPT" => "#EAFAF1",
+        "SALE_CONSUMPTION" => "#FDEDEC",
+        "STOCK_ADJUSTMENT" => "#FEF5E7",
+        "INITIAL_STOCK" => "#EBF5FB",
+        "RECEIPT_CANCELLED" => "#F2F4F4",
+        _ => "#F8F9FA"
+    };
 }

@@ -725,6 +725,17 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- Nút Thêm Nguyên Liệu Mới -->
+                        <Button Content="➕ Thêm Nguyên Liệu" 
+                                Command="{Binding OpenAddIngredientDialogCommand}"
+                                Background="#E67E22" Foreground="White" FontWeight="Bold" FontSize="13" Padding="14,10" Margin="0,0,10,0" BorderThickness="0" Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
                         <!-- Nút Nhập Kho Nhanh -->
                         <Button Content="+ Nhập Kho Nhanh" 
                                 Command="{Binding OpenImportStockDialogCommand}"
@@ -779,7 +790,8 @@
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="130" />
+                                                    <ColumnDefinition Width="105" />
+                                                    <ColumnDefinition Width="105" />
                                                     <ColumnDefinition Width="140" />
                                                 </Grid.ColumnDefinitions>
 
@@ -790,16 +802,16 @@
                                                 </StackPanel>
 
                                                 <!-- Tồn kho & ĐVT -->
-                                                <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,15,0">
+                                                <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0">
                                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                                        <TextBlock Text="{Binding QuantityOnHand, StringFormat='{}{0:N1}'}" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/>
-                                                        <TextBlock Text="{Binding BaseUom}" FontSize="13" Foreground="#7F8C8D" Margin="4,0,0,0" VerticalAlignment="Bottom"/>
+                                                        <TextBlock Text="{Binding QuantityOnHand, StringFormat='{}{0:N1}'}" FontWeight="Bold" FontSize="15" Foreground="#2C3E50"/>
+                                                        <TextBlock Text="{Binding BaseUom}" FontSize="12" Foreground="#7F8C8D" Margin="3,0,0,0" VerticalAlignment="Bottom"/>
                                                     </StackPanel>
-                                                    <TextBlock Text="{Binding MinStockAlert, StringFormat='Mức an toàn: {0:N0}'}" FontSize="11" Foreground="#BDC3C7" HorizontalAlignment="Right" Margin="0,2,0,0"/>
+                                                    <TextBlock Text="{Binding MinStockAlert, StringFormat='Mức an toàn: {0:N0}'}" FontSize="10" Foreground="#BDC3C7" HorizontalAlignment="Right" Margin="0,2,0,0"/>
                                                 </StackPanel>
 
                                                 <!-- Badge Trạng thái tồn kho -->
-                                                <Border Grid.Column="2" CornerRadius="6" Padding="10,6" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                <Border Grid.Column="2" CornerRadius="6" Padding="8,5" VerticalAlignment="Center" HorizontalAlignment="Center">
                                                     <Border.Style>
                                                         <Style TargetType="Border">
                                                             <Setter Property="Background" Value="#EAFAF1"/>
@@ -810,7 +822,7 @@
                                                             </Style.Triggers>
                                                         </Style>
                                                     </Border.Style>
-                                                    <TextBlock Text="{Binding StatusText}" FontWeight="Bold" FontSize="12">
+                                                    <TextBlock Text="{Binding StatusText}" FontWeight="Bold" FontSize="11">
                                                         <TextBlock.Style>
                                                             <Style TargetType="TextBlock">
                                                                 <Setter Property="Foreground" Value="#27AE60"/>
@@ -823,6 +835,33 @@
                                                         </TextBlock.Style>
                                                     </TextBlock>
                                                 </Border>
+
+                                                <!-- Thao tác: Sửa & Kiểm kê điều chỉnh -->
+                                                <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                    <Button Content="✏️ Sửa" 
+                                                            Command="{Binding DataContext.OpenEditIngredientDialogCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Background="#3498DB" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                            Padding="8,5" Margin="0,0,5,0" BorderThickness="0" Cursor="Hand" ToolTip="Chỉnh sửa tên &amp; mức an toàn">
+                                                        <Button.Resources>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="CornerRadius" Value="5"/>
+                                                            </Style>
+                                                        </Button.Resources>
+                                                    </Button>
+
+                                                    <Button Content="⚖️ Kiểm Kê" 
+                                                            Command="{Binding DataContext.OpenAdjustStockDialogCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Background="#E67E22" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                            Padding="8,5" BorderThickness="0" Cursor="Hand" ToolTip="Kiểm kê thực tế &amp; điều chỉnh tồn kho">
+                                                        <Button.Resources>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="CornerRadius" Value="5"/>
+                                                            </Style>
+                                                        </Button.Resources>
+                                                    </Button>
+                                                </StackPanel>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
@@ -836,17 +875,163 @@
                 <Border Grid.Column="1" Background="White" CornerRadius="12" Padding="20" BorderBrush="#E8ECEF" BorderThickness="1">
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" /> <!-- Tiêu đề -->
+                            <RowDefinition Height="Auto" /> <!-- Thanh Tìm kiếm & Lọc Loại giao dịch -->
+                            <RowDefinition Height="*" />    <!-- Danh sách Thẻ kho -->
                         </Grid.RowDefinitions>
 
-                        <DockPanel Grid.Row="0" Margin="0,0,0,15">
+                        <DockPanel Grid.Row="0" Margin="0,0,0,10">
                             <TextBlock Text="📜 Nhật Ký Biến Động Thẻ Kho" FontWeight="Bold" FontSize="15" Foreground="#2C3E50"/>
-                            <TextBlock Text="(20 lần gần nhất)" FontSize="12" Foreground="#7F8C8D" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding InventoryTransactions.Count, StringFormat='({0} giao dịch)'}" FontSize="12" Foreground="#27AE60" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </DockPanel>
 
+                        <!-- Thanh Tìm Kiếm & Lọc Loại Biến Động -->
+                        <Grid Grid.Row="1" Margin="0,0,0,12">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Ô tìm kiếm từ khóa -->
+                            <Grid Grid.Row="0" Margin="0,0,0,8">
+                                <TextBox Text="{Binding InventoryTransSearchKeyword, UpdateSourceTrigger=PropertyChanged}"
+                                         Height="34" Padding="28,0,10,0" VerticalContentAlignment="Center"
+                                         FontSize="12" BorderBrush="#BDC3C7">
+                                    <TextBox.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="6"/>
+                                        </Style>
+                                    </TextBox.Resources>
+                                </TextBox>
+                                <TextBlock Text="🔍" FontSize="12" Foreground="#95A5A6" VerticalAlignment="Center" Margin="8,0,0,0" IsHitTestVisible="False"/>
+                                <TextBlock Text="Tìm nguyên liệu, mã phiếu, ghi chú..." FontSize="11" Foreground="#BDC3C7"
+                                           VerticalAlignment="Center" Margin="30,0,0,0" IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding InventoryTransSearchKeyword}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+
+                            <!-- Bộ lọc loại giao dịch (Tags nằm ngang cuộn được) -->
+                            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Tất cả" Command="{Binding FilterInventoryTransByTypeCommand}" CommandParameter="ALL"
+                                            Padding="10,4" Margin="0,0,5,0" FontSize="11" FontWeight="SemiBold" Cursor="Hand" BorderThickness="0">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Background" Value="#F1F3F5"/>
+                                                <Setter Property="Foreground" Value="#2C3E50"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding InventoryTransTypeFilter}" Value="ALL">
+                                                        <Setter Property="Background" Value="#2C3E50"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="4"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+
+                                    <Button Content="📥 Nhập kho" Command="{Binding FilterInventoryTransByTypeCommand}" CommandParameter="GOODS_RECEIPT"
+                                            Padding="10,4" Margin="0,0,5,0" FontSize="11" FontWeight="SemiBold" Cursor="Hand" BorderThickness="0">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Background" Value="#F1F3F5"/>
+                                                <Setter Property="Foreground" Value="#2C3E50"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding InventoryTransTypeFilter}" Value="GOODS_RECEIPT">
+                                                        <Setter Property="Background" Value="#27AE60"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="4"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+
+                                    <Button Content="☕ Bán hàng" Command="{Binding FilterInventoryTransByTypeCommand}" CommandParameter="SALE_CONSUMPTION"
+                                            Padding="10,4" Margin="0,0,5,0" FontSize="11" FontWeight="SemiBold" Cursor="Hand" BorderThickness="0">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Background" Value="#F1F3F5"/>
+                                                <Setter Property="Foreground" Value="#2C3E50"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding InventoryTransTypeFilter}" Value="SALE_CONSUMPTION">
+                                                        <Setter Property="Background" Value="#C0392B"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="4"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+
+                                    <Button Content="⚖️ Điều chỉnh" Command="{Binding FilterInventoryTransByTypeCommand}" CommandParameter="STOCK_ADJUSTMENT"
+                                            Padding="10,4" Margin="0,0,5,0" FontSize="11" FontWeight="SemiBold" Cursor="Hand" BorderThickness="0">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Background" Value="#F1F3F5"/>
+                                                <Setter Property="Foreground" Value="#2C3E50"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding InventoryTransTypeFilter}" Value="STOCK_ADJUSTMENT">
+                                                        <Setter Property="Background" Value="#E67E22"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="4"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+
+                                    <Button Content="🌱 Tồn ban đầu" Command="{Binding FilterInventoryTransByTypeCommand}" CommandParameter="INITIAL_STOCK"
+                                            Padding="10,4" Margin="0,0,5,0" FontSize="11" FontWeight="SemiBold" Cursor="Hand" BorderThickness="0">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Background" Value="#F1F3F5"/>
+                                                <Setter Property="Foreground" Value="#2C3E50"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding InventoryTransTypeFilter}" Value="INITIAL_STOCK">
+                                                        <Setter Property="Background" Value="#2980B9"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="4"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+
                         <!-- Danh sách Thẻ kho -->
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding InventoryTransactions}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -858,10 +1043,16 @@
                                                     <RowDefinition Height="Auto" />
                                                 </Grid.RowDefinitions>
 
-                                                <!-- Dòng 1: Thời gian & Mã chứng từ -->
+                                                <!-- Dòng 1: Thời gian, Loại giao dịch & Mã chứng từ -->
                                                 <DockPanel Grid.Row="0">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Text="{Binding CreatedAt, StringFormat='{}{0:dd/MM HH:mm}'}" FontSize="11" Foreground="#7F8C8D" FontWeight="SemiBold"/>
+                                                        
+                                                        <!-- Huy hiệu Loại giao dịch -->
+                                                        <Border Background="{Binding TransactionBackground}" CornerRadius="3" Padding="5,1" Margin="6,0,0,0">
+                                                            <TextBlock Text="{Binding TransactionTypeBadge}" Foreground="{Binding TransactionColor}" FontSize="9" FontWeight="Bold"/>
+                                                        </Border>
+
                                                         <Border Background="#FDEDEC" CornerRadius="3" Padding="4,1" Margin="6,0,0,0"
                                                                 Visibility="{Binding IsCancelled, Converter={StaticResource BoolToVis}}">
                                                             <TextBlock Text="ĐÃ HỦY" Foreground="#C0392B" FontSize="9" FontWeight="Bold"/>
@@ -1097,16 +1288,118 @@
                 <Border Grid.Column="1" Background="White" CornerRadius="12" Padding="20" BorderBrush="#E8ECEF" BorderThickness="1">
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" /> <!-- Tiêu đề -->
+                            <RowDefinition Height="Auto" /> <!-- Thanh Tìm kiếm & Lọc Hình thức thanh toán -->
+                            <RowDefinition Height="*" />    <!-- Danh sách hóa đơn -->
                         </Grid.RowDefinitions>
 
-                        <DockPanel Grid.Row="0" Margin="0,0,0,15">
+                        <DockPanel Grid.Row="0" Margin="0,0,0,10">
                             <TextBlock Text="📜 Nhật Ký Đơn Hàng Đã Bán" FontWeight="Bold" FontSize="15" Foreground="#2C3E50"/>
-                            <TextBlock Text="{Binding ReportRecentOrders.Count, StringFormat='(gần nhất {0} đơn)'}" FontSize="12" Foreground="#7F8C8D" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding ReportRecentOrders.Count, StringFormat='({0} đơn hàng)'}" FontSize="12" Foreground="#27AE60" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center"/>
                         </DockPanel>
 
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <!-- Thanh Tìm Kiếm & Lọc Hình thức thanh toán -->
+                        <Grid Grid.Row="1" Margin="0,0,0,12">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Ô tìm kiếm từ khóa -->
+                            <Grid Grid.Row="0" Margin="0,0,0,8">
+                                <TextBox Text="{Binding OrderSearchKeyword, UpdateSourceTrigger=PropertyChanged}"
+                                         Height="34" Padding="28,0,10,0" VerticalContentAlignment="Center"
+                                         FontSize="12" BorderBrush="#BDC3C7">
+                                    <TextBox.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="6"/>
+                                        </Style>
+                                    </TextBox.Resources>
+                                </TextBox>
+                                <TextBlock Text="🔍" FontSize="12" Foreground="#95A5A6" VerticalAlignment="Center" Margin="8,0,0,0" IsHitTestVisible="False"/>
+                                <TextBlock Text="Tìm theo mã HĐ, tên món, thu ngân..." FontSize="11" Foreground="#BDC3C7"
+                                           VerticalAlignment="Center" Margin="30,0,0,0" IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding OrderSearchKeyword}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+
+                            <!-- Bộ lọc hình thức thanh toán -->
+                            <StackPanel Grid.Row="1" Orientation="Horizontal">
+                                <Button Content="Tất cả" Command="{Binding FilterOrderPaymentCommand}" CommandParameter="ALL"
+                                        Padding="10,4" Margin="0,0,5,0" FontSize="11" FontWeight="SemiBold" Cursor="Hand" BorderThickness="0">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="#F1F3F5"/>
+                                            <Setter Property="Foreground" Value="#2C3E50"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding OrderPaymentFilter}" Value="ALL">
+                                                    <Setter Property="Background" Value="#2C3E50"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+
+                                <Button Content="💵 Tiền mặt" Command="{Binding FilterOrderPaymentCommand}" CommandParameter="CASH"
+                                        Padding="10,4" Margin="0,0,5,0" FontSize="11" FontWeight="SemiBold" Cursor="Hand" BorderThickness="0">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="#F1F3F5"/>
+                                            <Setter Property="Foreground" Value="#2C3E50"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding OrderPaymentFilter}" Value="CASH">
+                                                    <Setter Property="Background" Value="#27AE60"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+
+                                <Button Content="📲 VietQR" Command="{Binding FilterOrderPaymentCommand}" CommandParameter="VIETQR"
+                                        Padding="10,4" Margin="0,0,5,0" FontSize="11" FontWeight="SemiBold" Cursor="Hand" BorderThickness="0">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="#F1F3F5"/>
+                                            <Setter Property="Foreground" Value="#2C3E50"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding OrderPaymentFilter}" Value="VIETQR">
+                                                    <Setter Property="Background" Value="#2980B9"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding ReportRecentOrders}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>

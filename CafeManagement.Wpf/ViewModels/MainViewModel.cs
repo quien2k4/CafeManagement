@@ -171,6 +171,20 @@ public partial class MainViewModel : ObservableObject
     private ObservableCollection<InventoryTransactionItemViewModel> _inventoryTransactions = [];
 
     [ObservableProperty]
+    private string _inventoryTransSearchKeyword = string.Empty;
+
+    [ObservableProperty]
+    private string _inventoryTransTypeFilter = "ALL";
+
+    [ObservableProperty]
+    private string _inventoryTransTypeFilterText = "Tất cả loại";
+
+    private List<InventoryTransactionItemViewModel> _allInventoryTransactions = [];
+
+    partial void OnInventoryTransSearchKeywordChanged(string value) => ApplyInventoryTransFilter();
+    partial void OnInventoryTransTypeFilterChanged(string value) => ApplyInventoryTransFilter();
+
+    [ObservableProperty]
     private int _lowStockCount = 0;
 
     // 5. DỮ LIỆU BÁO CÁO DOANH THU & THỐNG KÊ (REPORT)
@@ -209,6 +223,20 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private ObservableCollection<OrderReportItemViewModel> _reportRecentOrders = [];
+
+    [ObservableProperty]
+    private string _orderSearchKeyword = string.Empty;
+
+    [ObservableProperty]
+    private string _orderPaymentFilter = "ALL";
+
+    [ObservableProperty]
+    private string _orderPaymentFilterText = "Tất cả hình thức";
+
+    private List<OrderReportItemViewModel> _allReportOrders = [];
+
+    partial void OnOrderSearchKeywordChanged(string value) => ApplyOrderReportFilter();
+    partial void OnOrderPaymentFilterChanged(string value) => ApplyOrderReportFilter();
 
     [ObservableProperty]
     private string _reportDateFilter = "ALL"; // TODAY, WEEK, MONTH, ALL
@@ -1082,15 +1110,15 @@ public partial class MainViewModel : ObservableObject
             InventoryItems = new ObservableCollection<InventoryItemViewModel>(items);
             LowStockCount = items.Count(i => i.IsLowStock);
 
-            // Tải 20 giao dịch Thẻ kho gần nhất
+            // Tải đến 500 giao dịch Thẻ kho gần nhất
             var trans = await _db.InventoryTransactions
                 .Include(t => t.Ingredient)
                 .Where(t => t.BranchId == branchId)
                 .OrderByDescending(t => t.CreatedAt)
-                .Take(20)
+                .Take(500)
                 .ToListAsync();
 
-            var transItems = trans.Select(t => new InventoryTransactionItemViewModel
+            _allInventoryTransactions = trans.Select(t => new InventoryTransactionItemViewModel
             {
                 TransactionId = t.TransactionId,
                 BranchId = t.BranchId,
@@ -1105,12 +1133,50 @@ public partial class MainViewModel : ObservableObject
                 Note = t.Note ?? ""
             }).ToList();
 
-            InventoryTransactions = new ObservableCollection<InventoryTransactionItemViewModel>(transItems);
+            ApplyInventoryTransFilter();
         }
         catch (Exception ex)
         {
             MessageBox.Show($"Lỗi tải dữ liệu kho: {ex.Message}", "Lỗi Kho", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    public void ApplyInventoryTransFilter()
+    {
+        var filtered = _allInventoryTransactions.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(InventoryTransSearchKeyword))
+        {
+            string kw = InventoryTransSearchKeyword.Trim().ToLower();
+            filtered = filtered.Where(t =>
+                (t.IngredientName?.ToLower().Contains(kw) == true) ||
+                (t.ReferenceId?.ToLower().Contains(kw) == true) ||
+                (t.Note?.ToLower().Contains(kw) == true) ||
+                (t.TransactionTypeBadge?.ToLower().Contains(kw) == true));
+        }
+
+        if (!string.IsNullOrEmpty(InventoryTransTypeFilter) && InventoryTransTypeFilter != "ALL")
+        {
+            filtered = filtered.Where(t => t.TransactionType == InventoryTransTypeFilter);
+        }
+
+        InventoryTransactions = new ObservableCollection<InventoryTransactionItemViewModel>(filtered.ToList());
+    }
+
+    [RelayCommand]
+    public void FilterInventoryTransByType(string type)
+    {
+        InventoryTransTypeFilter = type;
+        InventoryTransTypeFilterText = type switch
+        {
+            "GOODS_RECEIPT" => "📥 Nhập kho",
+            "SALE_CONSUMPTION" => "☕ Bán hàng",
+            "STOCK_ADJUSTMENT" => "⚖️ Điều chỉnh",
+            "INITIAL_STOCK" => "🌱 Tồn ban đầu",
+            "RECEIPT_CANCELLED" => "❌ Đã hủy",
+            _ => "Tất cả loại"
+        };
+        ApplyInventoryTransFilter();
     }
 
     // Hủy phiếu nhập kho (hoàn tác số lượng nếu nhập sai và ghi nhận lịch sử)
@@ -1235,6 +1301,170 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    // Mở hộp thoại Thêm nguyên liệu mới vào kho
+    [RelayCommand]
+    public async Task OpenAddIngredientDialogAsync()
+    {
+        try
+        {
+            var dlg = new IngredientEditWindow(null);
+            if (Application.Current?.MainWindow != null)
+            {
+                dlg.Owner = Application.Current.MainWindow;
+            }
+
+            if (dlg.ShowDialog() == true && dlg.IngredientToSave != null)
+            {
+                var newIng = dlg.IngredientToSave;
+                newIng.MinStockAlert = dlg.MinStockAlert;
+                _db.Ingredients.Add(newIng);
+                await _db.SaveChangesAsync();
+
+                // Tạo BranchInventory cho các chi nhánh
+                var branches = await _db.Branches.ToListAsync();
+                int currentBranchId = CurrentSession.BranchId > 0 ? CurrentSession.BranchId : 1;
+
+                foreach (var b in branches)
+                {
+                    decimal initQty = (b.BranchId == currentBranchId) ? dlg.InitialStock : 0;
+                    var branchStock = new BranchInventory
+                    {
+                        BranchId = b.BranchId,
+                        IngredientId = newIng.IngredientId,
+                        QuantityOnHand = initQty,
+                        ReservedQuantity = 0,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    _db.BranchInventories.Add(branchStock);
+
+                    if (initQty > 0)
+                    {
+                        _db.InventoryTransactions.Add(new InventoryTransaction
+                        {
+                            BranchId = b.BranchId,
+                            IngredientId = newIng.IngredientId,
+                            TransactionType = "INITIAL_STOCK",
+                            QuantityChange = initQty,
+                            BalanceAfter = initQty,
+                            ReferenceType = "INITIAL",
+                            ReferenceId = $"INIT_{newIng.IngredientCode}",
+                            Note = $"Khởi tạo tồn kho ban đầu khi tạo nguyên liệu mới ({CurrentCashier})",
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+
+                await _db.SaveChangesAsync();
+
+                MessageBox.Show($"🎉 Đã thêm thành công nguyên liệu '{newIng.IngredientName}' vào hệ thống kho!",
+                    "Thêm Nguyên Liệu Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                await RefreshInventoryAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi thêm nguyên liệu: {ex.Message}", "Lỗi Thêm Nguyên Liệu", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    // Mở hộp thoại Sửa thông tin nguyên liệu
+    [RelayCommand]
+    public async Task OpenEditIngredientDialogAsync(InventoryItemViewModel? item)
+    {
+        if (item == null) return;
+        try
+        {
+            var ing = await _db.Ingredients.FindAsync(item.IngredientId);
+            if (ing == null) return;
+
+            var dlg = new IngredientEditWindow(ing, item.MinStockAlert);
+            if (Application.Current?.MainWindow != null)
+            {
+                dlg.Owner = Application.Current.MainWindow;
+            }
+
+            if (dlg.ShowDialog() == true)
+            {
+                ing.MinStockAlert = dlg.MinStockAlert;
+                await _db.SaveChangesAsync();
+
+                MessageBox.Show($"🎉 Đã cập nhật thành công nguyên liệu '{ing.IngredientName}'!",
+                    "Cập Nhật Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                await RefreshInventoryAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi cập nhật nguyên liệu: {ex.Message}", "Lỗi Cập Nhật", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    // Mở hộp thoại Điều chỉnh / Kiểm kê tồn kho & lưu lịch sử
+    [RelayCommand]
+    public async Task OpenAdjustStockDialogAsync(InventoryItemViewModel? item)
+    {
+        if (item == null) return;
+        try
+        {
+            var dlg = new AdjustStockWindow(item);
+            if (Application.Current?.MainWindow != null)
+            {
+                dlg.Owner = Application.Current.MainWindow;
+            }
+
+            if (dlg.ShowDialog() == true)
+            {
+                int branchId = CurrentSession.BranchId > 0 ? CurrentSession.BranchId : 1;
+                var stock = await _db.BranchInventories
+                    .FirstOrDefaultAsync(bi => bi.BranchId == branchId && bi.IngredientId == item.IngredientId);
+
+                if (stock == null) return;
+
+                decimal oldQty = stock.QuantityOnHand;
+                decimal newQty = dlg.NewQuantity;
+                decimal diff = newQty - oldQty;
+
+                stock.QuantityOnHand = newQty;
+                stock.UpdatedAt = DateTime.UtcNow;
+
+                // Lưu vết lịch sử thẻ kho (Audit Log)
+                string auditRef = $"KK{DateTime.Now:yyMMddHHmm}";
+                string noteDetail = string.IsNullOrWhiteSpace(dlg.Note) ? "" : $" ({dlg.Note})";
+
+                _db.InventoryTransactions.Add(new InventoryTransaction
+                {
+                    BranchId = branchId,
+                    IngredientId = item.IngredientId,
+                    TransactionType = "STOCK_ADJUSTMENT",
+                    QuantityChange = diff,
+                    BalanceAfter = newQty,
+                    ReferenceType = "ADJUSTMENT",
+                    ReferenceId = auditRef,
+                    Note = $"[Kiểm kê] {dlg.Reason}{noteDetail} | Cũ: {oldQty:N1}{item.BaseUom} -> Mới: {newQty:N1}{item.BaseUom} | Bởi: {CurrentCashier}",
+                    CreatedAt = DateTime.UtcNow
+                });
+
+                await _db.SaveChangesAsync();
+
+                MessageBox.Show($"🎉 Đã điều chỉnh kiểm kê tồn kho cho '{item.IngredientName}' thành công!\n\n" +
+                                $"• Số lượng cũ: {oldQty:N1} {item.BaseUom}\n" +
+                                $"• Số lượng mới: {newQty:N1} {item.BaseUom}\n" +
+                                $"• Chênh lệch: {(diff >= 0 ? "+" : "")}{diff:N1} {item.BaseUom}\n" +
+                                $"• Mã phiếu kiểm kê: #{auditRef}\n\n" +
+                                $"⚡ Lịch sử đã được ghi nhận vào thẻ kho.",
+                                "Điều Chỉnh Tồn Kho Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                await RefreshInventoryAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi điều chỉnh tồn kho: {ex.Message}", "Lỗi Điều Chỉnh", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     // ==================== LOGIC BÁO CÁO DOANH THU & THỐNG KÊ (REPORT) ====================
     [RelayCommand]
     public async Task FilterReportByDate(string filter)
@@ -1352,10 +1582,10 @@ public partial class MainViewModel : ObservableObject
 
             ReportTopProducts = new ObservableCollection<TopProductItemViewModel>(topList);
 
-            // 6. Lịch sử hóa đơn bán hàng gần nhất
+            // 6. Lịch sử toàn bộ hóa đơn bán hàng theo bộ lọc
             var cashiers = await _db.UserAccounts.Include(u => u.Employee).ToDictionaryAsync(u => u.UserId, u => u.Employee?.FullName ?? u.Username);
 
-            var recent = orders.Take(25).Select(o =>
+            _allReportOrders = orders.Select(o =>
             {
                 string cName = cashiers.TryGetValue(o.CashierUserId, out var cn) ? cn : $"Thu ngân #{o.CashierUserId}";
                 string pMethod = o.Payments.FirstOrDefault()?.PaymentMethod ?? "CASH";
@@ -1373,12 +1603,47 @@ public partial class MainViewModel : ObservableObject
                 };
             }).ToList();
 
-            ReportRecentOrders = new ObservableCollection<OrderReportItemViewModel>(recent);
+            ApplyOrderReportFilter();
         }
         catch (Exception ex)
         {
             MessageBox.Show($"Lỗi tải dữ liệu báo cáo: {ex.Message}", "Lỗi Báo Cáo", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    public void ApplyOrderReportFilter()
+    {
+        var filtered = _allReportOrders.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(OrderSearchKeyword))
+        {
+            string kw = OrderSearchKeyword.Trim().ToLower();
+            filtered = filtered.Where(o =>
+                (o.OrderNumber?.ToLower().Contains(kw) == true) ||
+                (o.CashierName?.ToLower().Contains(kw) == true) ||
+                (o.ItemsSummary?.ToLower().Contains(kw) == true) ||
+                (o.BranchName?.ToLower().Contains(kw) == true));
+        }
+
+        if (!string.IsNullOrEmpty(OrderPaymentFilter) && OrderPaymentFilter != "ALL")
+        {
+            filtered = filtered.Where(o => o.PaymentMethod == OrderPaymentFilter);
+        }
+
+        ReportRecentOrders = new ObservableCollection<OrderReportItemViewModel>(filtered.ToList());
+    }
+
+    [RelayCommand]
+    public void FilterOrderPayment(string payment)
+    {
+        OrderPaymentFilter = payment;
+        OrderPaymentFilterText = payment switch
+        {
+            "CASH" => "💵 Tiền mặt",
+            "VIETQR" => "📲 VietQR",
+            _ => "Tất cả hình thức"
+        };
+        ApplyOrderReportFilter();
     }
 
     // ==================== 6. QUẢN LÝ MÓN NƯỚC, GIÁ & CÔNG THỨC PHA CHẾ (BOM) ====================
