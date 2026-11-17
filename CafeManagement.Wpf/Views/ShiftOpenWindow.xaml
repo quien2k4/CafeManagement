@@ -1,0 +1,93 @@
+<Window x:Class="CafeManagement.Wpf.Views.ShiftOpenWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Mở Ca Làm Việc (Shift In)" Height="480" Width="480"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#F8F9FA" FontFamily="Segoe UI">
+    <Grid Margin="25">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Tiêu đề -->
+        <Border Grid.Row="0" Background="#2B2B40" CornerRadius="8" Padding="15,12" Margin="0,0,0,15">
+            <StackPanel>
+                <TextBlock Text="🔓 MỞ CA BÁN HÀNG (SHIFT IN)" FontWeight="Bold" FontSize="16" Foreground="White"/>
+                <TextBlock Text="Khai báo ca làm việc và quỹ tiền lẻ bàn giao đầu ca để bắt đầu thu ngân" FontSize="11" Foreground="#A0AEC0" Margin="0,3,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Form nhập thông tin -->
+        <Border Grid.Row="1" Background="White" CornerRadius="8" Padding="20" BorderBrush="#E2E8F0" BorderThickness="1">
+            <StackPanel>
+                <!-- Thông tin nhân viên & chi nhánh -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Thu ngân trực ca:" FontSize="11" Foreground="#718096" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="TxtCashier" Text="Thu Ngân" FontSize="13" FontWeight="Bold" Foreground="#2D3748" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="Chi nhánh:" FontSize="11" Foreground="#718096" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="TxtBranch" Text="Chi nhánh 1" FontSize="13" FontWeight="Bold" Foreground="#2D3748" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Grid>
+
+                <Separator Margin="0,0,0,12" Background="#EDF2F7"/>
+
+                <!-- Ca làm việc -->
+                <TextBlock Text="Chọn ca làm việc (*):" FontWeight="SemiBold" FontSize="12" Foreground="#2D3748" Margin="0,0,0,5"/>
+                <ComboBox x:Name="CboShiftName" Height="36" FontSize="12" VerticalContentAlignment="Center" Margin="0,0,0,12">
+                    <ComboBoxItem Content="☀️ Ca Sáng (06:00 - 14:00)" IsSelected="True" Tag="Ca Sáng"/>
+                    <ComboBoxItem Content="⛅ Ca Chiều (14:00 - 22:00)" Tag="Ca Chiều"/>
+                    <ComboBoxItem Content="🌙 Ca Tối / Đêm (22:00 - Sáng)" Tag="Ca Tối"/>
+                    <ComboBoxItem Content="⭐ Ca Cả Ngày (Full-time)" Tag="Ca Cả Ngày"/>
+                </ComboBox>
+
+                <!-- Tiền bàn giao đầu ca -->
+                <TextBlock Text="Tiền mặt đầu ca trong két (Float Cash) (*):" FontWeight="SemiBold" FontSize="12" Foreground="#2D3748" Margin="0,0,0,5"/>
+                <TextBox x:Name="TxtOpeningCash" Height="38" Padding="10,0" VerticalContentAlignment="Center"
+                         FontSize="15" FontWeight="Bold" Foreground="#27AE60" BorderBrush="#CBD5E0" Text="1,000,000" Margin="0,0,0,6"/>
+
+                <!-- Nút nhanh chọn tiền lẻ -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <Button Content="500,000 đ" Click="QuickCash_Click" Tag="500000" Margin="0,0,6,0" Padding="8,4" Background="#EDF2F7" BorderThickness="0" Cursor="Hand" FontSize="11"/>
+                    <Button Content="1,000,000 đ" Click="QuickCash_Click" Tag="1000000" Margin="0,0,6,0" Padding="8,4" Background="#EDF2F7" BorderThickness="0" Cursor="Hand" FontSize="11"/>
+                    <Button Content="1,500,000 đ" Click="QuickCash_Click" Tag="1500000" Margin="0,0,6,0" Padding="8,4" Background="#EDF2F7" BorderThickness="0" Cursor="Hand" FontSize="11"/>
+                    <Button Content="2,000,000 đ" Click="QuickCash_Click" Tag="2000000" Padding="8,4" Background="#EDF2F7" BorderThickness="0" Cursor="Hand" FontSize="11"/>
+                </StackPanel>
+
+                <!-- Ghi chú bàn giao -->
+                <TextBlock Text="Ghi chú bàn giao ca:" FontWeight="SemiBold" FontSize="12" Foreground="#2D3748" Margin="0,0,0,5"/>
+                <TextBox x:Name="TxtNotes" Height="36" Padding="8,0" VerticalContentAlignment="Center"
+                         FontSize="12" BorderBrush="#CBD5E0" Text="Bàn giao tiền lẻ đầy đủ"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Nút thao tác -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="Hủy bỏ" Click="Cancel_Click" Width="100" Height="40" Background="#A0AEC0" Foreground="White"
+                    FontWeight="SemiBold" FontSize="13" BorderThickness="0" Margin="0,0,10,0" Cursor="Hand">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="6"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+
+            <Button Content="🟢 Bắt Đầu Mở Ca" Click="OpenShift_Click" Width="160" Height="40" Background="#27AE60" Foreground="White"
+                    FontWeight="Bold" FontSize="13" BorderThickness="0" Cursor="Hand">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="6"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>

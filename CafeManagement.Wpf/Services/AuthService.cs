@@ -8,7 +8,7 @@ namespace CafeManagement.Wpf.Services;
 
 public class AuthService
 {
-    private static string HashMd5(string input)
+    public static string HashMd5(string input)
     {
         using var md5 = MD5.Create();
         var bytes = md5.ComputeHash(Encoding.UTF8.GetBytes(input));
@@ -126,35 +126,31 @@ public class AuthService
         string trimmedUser = username.Trim();
         var user = await db.UserAccounts
             .Include(u => u.Employee)
-            .FirstOrDefaultAsync(u => u.Username.ToLower() == trimmedUser.ToLower() && u.IsActive && !u.IsLocked);
+            .FirstOrDefaultAsync(u => u.Username.ToLower() == trimmedUser.ToLower());
 
-        // Fallback kiểm tra mật khẩu
+        if (user == null)
+            return null;
+
+        // Kiểm tra xem tài khoản hoặc nhân viên có bị tạm ngưng / khóa không
+        if (!user.IsActive || user.IsLocked || (user.Employee != null && user.Employee.Status != "ACTIVE"))
+        {
+            throw new InvalidOperationException("Tài khoản này đã bị khóa hoặc nhân viên đã tạm ngưng làm việc!");
+        }
+
+        // Kiểm tra mật khẩu
         string inputHash = HashMd5(password.Trim());
-        bool isPasswordValid = false;
-
-        if (user != null)
-        {
-            isPasswordValid = string.Equals(user.PasswordHash, inputHash, StringComparison.OrdinalIgnoreCase)
+        bool isPasswordValid = string.Equals(user.PasswordHash, inputHash, StringComparison.OrdinalIgnoreCase)
                               || password.Trim() == "123456";
-        }
-        else if (password.Trim() == "123456")
-        {
-            // Fallback tài khoản demo nếu chưa nạp kịp
-            isPasswordValid = true;
-        }
 
         if (!isPasswordValid)
             return null;
 
-        if (user != null)
+        try
         {
-            try
-            {
-                user.LastLoginAt = DateTime.UtcNow;
-                await db.SaveChangesAsync();
-            }
-            catch { }
+            user.LastLoginAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
         }
+        catch { }
 
         // Lấy thông tin Chi nhánh
         var branch = await db.Branches.FirstOrDefaultAsync(b => b.BranchId == selectedBranchId)

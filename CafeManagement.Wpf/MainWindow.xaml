@@ -241,6 +241,72 @@
                             </TextBlock>
                         </StackPanel>
                     </Border>
+
+                    <!-- Nút 6: Khách & Ưu Đãi -->
+                    <Border CornerRadius="8" Padding="15,12" Margin="0,0,0,8" Cursor="Hand"
+                            Visibility="{Binding CanAccessCustomer, Converter={StaticResource BoolToVis}}">
+                        <Border.InputBindings>
+                            <MouseBinding Gesture="LeftClick" Command="{Binding SwitchToCustomerCommand}" />
+                        </Border.InputBindings>
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsCustomerView}" Value="True">
+                                        <Setter Property="Background" Value="#2B2B40"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="👥" FontSize="16" Margin="0,0,12,0"/>
+                            <TextBlock Text="Khách &amp; Ưu Đãi" FontSize="13" FontWeight="Bold" VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#8A8A9E"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsCustomerView}" Value="True">
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Nút 7: Nhân Sự & Ca -->
+                    <Border CornerRadius="8" Padding="15,12" Margin="0,0,0,8" Cursor="Hand"
+                            Visibility="{Binding CanAccessEmployee, Converter={StaticResource BoolToVis}}">
+                        <Border.InputBindings>
+                            <MouseBinding Gesture="LeftClick" Command="{Binding SwitchToEmployeeCommand}" />
+                        </Border.InputBindings>
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsEmployeeView}" Value="True">
+                                        <Setter Property="Background" Value="#2B2B40"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="👔" FontSize="16" Margin="0,0,12,0"/>
+                            <TextBlock Text="Nhân Sự &amp; Ca" FontSize="13" FontWeight="Bold" VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#8A8A9E"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsEmployeeView}" Value="True">
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -354,29 +420,148 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- Tiêu đề đơn hàng & Nút xem đơn tạm -->
-                <DockPanel Grid.Row="0" Margin="0,0,0,15">
-                    <StackPanel DockPanel.Dock="Left">
-                        <TextBlock Text="ĐƠN HÀNG HIỆN TẠI" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/>
-                        <TextBlock Text="{Binding OrderNumber, StringFormat='Mã: {0}'}" FontSize="12" Foreground="#7F8C8D" Margin="0,2,0,0"/>
-                    </StackPanel>
+                <!-- Tiêu đề đơn hàng & Khách hàng thành viên -->
+                <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                    <DockPanel Margin="0,0,0,8">
+                        <StackPanel DockPanel.Dock="Left">
+                            <TextBlock Text="ĐƠN HÀNG HIỆN TẠI" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/>
+                            <TextBlock Text="{Binding OrderNumber, StringFormat='Mã: {0}'}" FontSize="12" Foreground="#7F8C8D" Margin="0,2,0,0"/>
+                        </StackPanel>
 
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Content="{Binding HeldOrdersCount, StringFormat='Đơn tạm ({0})'}" 
-                                Command="{Binding OpenHeldOrdersCommand}"
-                                Background="#FFF3E0" Foreground="#E65100" BorderThickness="1" BorderBrush="#FFE0B2" FontWeight="Bold" Padding="8,4" Margin="0,0,8,0" Cursor="Hand">
-                            <Button.Resources>
-                                <Style TargetType="Border">
-                                    <Setter Property="CornerRadius" Value="6"/>
-                                </Style>
-                            </Button.Resources>
-                        </Button>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Content="{Binding HeldOrdersCount, StringFormat='Đơn tạm ({0})'}" 
+                                    Command="{Binding OpenHeldOrdersCommand}"
+                                    Background="#FFF3E0" Foreground="#E65100" BorderThickness="1" BorderBrush="#FFE0B2" FontWeight="Bold" Padding="8,4" Margin="0,0,8,0" Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="6"/>
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
 
-                        <Button Content="Xóa giỏ" 
-                                Command="{Binding ClearCartCommand}"
-                                Background="Transparent" Foreground="#E74C3C" BorderThickness="0" FontWeight="SemiBold" Cursor="Hand"/>
-                    </StackPanel>
-                </DockPanel>
+                            <Button Content="Xóa giỏ" 
+                                    Command="{Binding ClearCartCommand}"
+                                    Background="Transparent" Foreground="#E74C3C" BorderThickness="0" FontWeight="SemiBold" Cursor="Hand"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <!-- Thanh Quản Lý Ca Làm Việc (Shift In / Shift Out) -->
+                    <Border Background="#F7FAFC" CornerRadius="6" Padding="8,6" Margin="0,0,0,8" BorderBrush="#E2E8F0" BorderThickness="1">
+                        <DockPanel>
+                            <!-- Khi đang trong ca -->
+                            <DockPanel Visibility="{Binding HasActiveShift, Converter={StaticResource BoolToVis}}">
+                                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Border Background="#C6F6D5" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
+                                        <TextBlock Text="{Binding CurrentShiftBadge}" FontWeight="Bold" FontSize="11" Foreground="#22543D"/>
+                                    </Border>
+                                    <Button Content="ℹ️ Chi tiết" Command="{Binding ViewCurrentShiftStatusCommand}"
+                                            Background="Transparent" Foreground="#3182CE" FontWeight="SemiBold" FontSize="11" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0"/>
+                                </StackPanel>
+
+                                <Button DockPanel.Dock="Right" Content="🔒 Kết Ca" Command="{Binding CloseShiftDialogCommand}"
+                                        Background="#DD6B20" Foreground="White" FontWeight="Bold" FontSize="11" Padding="8,3" BorderThickness="0" Cursor="Hand">
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                            </DockPanel>
+
+                            <!-- Khi chưa vào ca -->
+                            <DockPanel Visibility="{Binding HasNoActiveShift, Converter={StaticResource BoolToVis}}">
+                                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Border Background="#FEEBC8" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
+                                        <TextBlock Text="⏸ Chưa mở ca" FontWeight="Bold" FontSize="11" Foreground="#744210"/>
+                                    </Border>
+                                    <TextBlock Text="Mở ca để bàn giao két" FontSize="10" Foreground="#718096" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <Button DockPanel.Dock="Right" Content="🔓 Mở Ca" Command="{Binding OpenShiftDialogCommand}"
+                                        Background="#27AE60" Foreground="White" FontWeight="Bold" FontSize="11" Padding="10,3" BorderThickness="0" Cursor="Hand">
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                            </DockPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Khối Khách Hàng Thành Viên -->
+                    <Border Background="#F4F6F9" CornerRadius="8" Padding="10,8" BorderBrush="#E2E8F0" BorderThickness="1">
+                        <StackPanel>
+                            <!-- Khi chưa chọn khách hàng -->
+                            <Grid Visibility="{Binding HasNoSelectedCustomer, Converter={StaticResource BoolToVis}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" Text="{Binding CustomerSearchPhone, UpdateSourceTrigger=PropertyChanged}"
+                                         Height="32" Padding="8,0" VerticalContentAlignment="Center" FontSize="12" BorderBrush="#CBD5E0">
+                                    <TextBox.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4"/>
+                                        </Style>
+                                    </TextBox.Resources>
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Enter" Command="{Binding SearchCustomerCommand}"/>
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                                <TextBlock Grid.Column="0" Text="📞 Nhập SĐT khách hàng..." FontSize="11" Foreground="#A0AEC0"
+                                           VerticalAlignment="Center" Margin="10,0,0,0" IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding CustomerSearchPhone}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <Button Grid.Column="1" Content="🔍 Tìm" Command="{Binding SearchCustomerCommand}"
+                                        Background="#3182CE" Foreground="White" FontWeight="Bold" FontSize="11"
+                                        Padding="10,0" Margin="6,0,0,0" Height="32" BorderThickness="0" Cursor="Hand">
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                            </Grid>
+
+                            <!-- Khi đã chọn khách hàng -->
+                            <StackPanel Visibility="{Binding HasSelectedCustomer, Converter={StaticResource BoolToVis}}">
+                                <DockPanel Margin="0,0,0,4">
+                                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="👤" FontSize="12" Margin="0,0,4,0"/>
+                                        <TextBlock Text="{Binding SelectedCustomer.FullName}" FontWeight="Bold" FontSize="12" Foreground="#2D3748"/>
+                                        <TextBlock Text="{Binding SelectedCustomer.PhoneNumber, StringFormat=' ({0})'}" FontSize="11" Foreground="#718096" Margin="4,0,0,0"/>
+                                    </StackPanel>
+                                    <Button DockPanel.Dock="Right" Content="✕ Bỏ chọn" Command="{Binding RemoveCustomerCommand}"
+                                            Background="Transparent" Foreground="#E53E3E" FontWeight="SemiBold" FontSize="10" BorderThickness="0" Cursor="Hand"/>
+                                </DockPanel>
+
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Border Background="#FEFCBF" CornerRadius="4" Padding="5,2" Margin="0,0,8,0">
+                                            <TextBlock Text="{Binding SelectedCustomer.TierBadge}" FontWeight="Bold" FontSize="10" Foreground="#B7791F"/>
+                                        </Border>
+                                        <TextBlock Text="{Binding SelectedCustomer.TotalPoints, StringFormat='Điểm: {0}'}" FontWeight="SemiBold" FontSize="11" Foreground="#4A5568"/>
+                                    </StackPanel>
+
+                                    <!-- Checkbox đổi điểm -->
+                                    <CheckBox DockPanel.Dock="Right" Content="{Binding PointsDiscountAmount, StringFormat='Đổi điểm (-{0:N0} đ)'}"
+                                              IsChecked="{Binding UseCustomerPoints}"
+                                              FontSize="11" FontWeight="SemiBold" Foreground="#27AE60" VerticalAlignment="Center"/>
+                                </DockPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
 
                 <!-- Danh sách món trong giỏ hàng -->
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
@@ -431,33 +616,119 @@
                     </ItemsControl>
                 </ScrollViewer>
 
-                <!-- Tổng tiền và nút Thanh Toán -->
-                <Border Grid.Row="2" BorderBrush="#EEEEEE" BorderThickness="0,1,0,0" Padding="0,15,0,0">
+                <!-- Voucher & Tổng tiền và nút Thanh Toán -->
+                <Border Grid.Row="2" BorderBrush="#EEEEEE" BorderThickness="0,1,0,0" Padding="0,12,0,0">
                     <StackPanel>
-                        <DockPanel Margin="0,0,0,6">
-                            <TextBlock Text="Tạm tính:" Foreground="#7F8C8D" FontSize="13"/>
-                            <TextBlock Text="{Binding SubTotal, StringFormat='{}{0:N0} đ'}" HorizontalAlignment="Right" FontWeight="SemiBold" FontSize="13"/>
+                        <!-- Khối Voucher / Khuyến mãi -->
+                        <Border Background="#FDFEFE" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,0,0,10">
+                            <StackPanel>
+                                <!-- Khi chưa áp dụng voucher -->
+                                <Grid Visibility="{Binding HasNoSelectedPromotion, Converter={StaticResource BoolToVis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBox Grid.Column="0" Text="{Binding VoucherInputCode, UpdateSourceTrigger=PropertyChanged}"
+                                             Height="32" Padding="8,0" VerticalContentAlignment="Center" FontSize="11" FontWeight="Bold" BorderBrush="#CBD5E0">
+                                        <TextBox.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="4"/>
+                                            </Style>
+                                        </TextBox.Resources>
+                                        <TextBox.InputBindings>
+                                            <KeyBinding Key="Enter" Command="{Binding ApplyVoucherCommand}"/>
+                                        </TextBox.InputBindings>
+                                    </TextBox>
+                                    <TextBlock Grid.Column="0" Text="🎟️ Nhập mã voucher..." FontSize="11" Foreground="#A0AEC0"
+                                               VerticalAlignment="Center" Margin="10,0,0,0" IsHitTestVisible="False">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding VoucherInputCode}" Value="">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+                                    <Button Grid.Column="1" Content="Áp Dụng" Command="{Binding ApplyVoucherCommand}"
+                                            Background="#E67E22" Foreground="White" FontWeight="Bold" FontSize="11"
+                                            Padding="10,0" Margin="4,0,0,0" Height="32" BorderThickness="0" Cursor="Hand">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="4"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+
+                                    <Button Grid.Column="2" Content="🎟️ Chọn" Command="{Binding OpenSelectVoucherDialogCommand}"
+                                            Visibility="{Binding CanBrowseVouchers, Converter={StaticResource BoolToVis}}"
+                                            Background="#ED8936" Foreground="White" FontWeight="Bold" FontSize="11"
+                                            Padding="8,0" Margin="4,0,0,0" Height="32" BorderThickness="0" Cursor="Hand">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="4"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+                                </Grid>
+
+                                <!-- Khi đã áp dụng voucher -->
+                                <DockPanel Visibility="{Binding HasSelectedPromotion, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Border Background="#FED7D7" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
+                                            <TextBlock Text="{Binding SelectedPromotion.PromotionCode}" FontWeight="Bold" FontSize="10" Foreground="#C53030"/>
+                                        </Border>
+                                        <TextBlock Text="{Binding VoucherDiscountAmount, StringFormat='Giảm -{0:N0} đ'}" FontWeight="Bold" FontSize="11" Foreground="#27AE60"/>
+                                    </StackPanel>
+                                    <Button DockPanel.Dock="Right" Content="✕ Bỏ mã" Command="{Binding RemoveVoucherCommand}"
+                                            Background="Transparent" Foreground="#E53E3E" FontWeight="SemiBold" FontSize="10" BorderThickness="0" Cursor="Hand"/>
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Chi tiết thanh toán -->
+                        <DockPanel Margin="0,0,0,4">
+                            <TextBlock Text="Tạm tính:" Foreground="#7F8C8D" FontSize="12"/>
+                            <TextBlock Text="{Binding SubTotal, StringFormat='{}{0:N0} đ'}" HorizontalAlignment="Right" FontWeight="SemiBold" FontSize="12"/>
                         </DockPanel>
 
-                        <DockPanel Margin="0,0,0,10">
-                            <TextBlock Text="Giảm giá:" Foreground="#7F8C8D" FontSize="13"/>
-                            <TextBlock Text="{Binding DiscountAmount, StringFormat='{}{0:N0} đ'}" HorizontalAlignment="Right" FontWeight="SemiBold" FontSize="13" Foreground="#27AE60"/>
+                        <!-- Giảm theo hạng thẻ -->
+                        <DockPanel Margin="0,0,0,4" Visibility="{Binding HasTierDiscount, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Ưu đãi thành viên:" Foreground="#27AE60" FontSize="12"/>
+                            <TextBlock Text="{Binding TierDiscountAmount, StringFormat='-{0:N0} đ'}" HorizontalAlignment="Right" FontWeight="Bold" FontSize="12" Foreground="#27AE60"/>
                         </DockPanel>
 
-                        <DockPanel Margin="0,0,0,15">
-                            <TextBlock Text="TỔNG TIỀN:" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/>
+                        <!-- Giảm do đổi điểm -->
+                        <DockPanel Margin="0,0,0,4" Visibility="{Binding HasPointsDiscount, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{Binding PointsToUse, StringFormat='Đổi {0} điểm thưởng:'}" Foreground="#2980B9" FontSize="12"/>
+                            <TextBlock Text="{Binding PointsDiscountAmount, StringFormat='-{0:N0} đ'}" HorizontalAlignment="Right" FontWeight="Bold" FontSize="12" Foreground="#2980B9"/>
+                        </DockPanel>
+
+                        <!-- Giảm do Voucher -->
+                        <DockPanel Margin="0,0,0,4" Visibility="{Binding HasVoucherDiscount, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{Binding SelectedPromotion.PromotionCode, StringFormat='Voucher ({0}):'}" Foreground="#E67E22" FontSize="12"/>
+                            <TextBlock Text="{Binding VoucherDiscountAmount, StringFormat='-{0:N0} đ'}" HorizontalAlignment="Right" FontWeight="Bold" FontSize="12" Foreground="#E67E22"/>
+                        </DockPanel>
+
+                        <DockPanel Margin="0,4,0,12">
+                            <TextBlock Text="TỔNG TIỀN:" FontWeight="Bold" FontSize="15" Foreground="#2C3E50"/>
                             <TextBlock Text="{Binding FinalAmount, StringFormat='{}{0:N0} đ'}" HorizontalAlignment="Right" FontWeight="Bold" FontSize="20" Foreground="#E65100"/>
                         </DockPanel>
 
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="110" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
                             <Button Grid.Column="0" Content="⏸ Tạm Giữ" 
                                     Command="{Binding HoldOrderCommand}" Margin="0,0,8,0"
-                                    Background="#FFA726" Foreground="White" FontWeight="Bold" Height="48" BorderThickness="0" Cursor="Hand">
+                                    Background="#FFA726" Foreground="White" FontWeight="Bold" Height="44" BorderThickness="0" Cursor="Hand">
                                 <Button.Resources>
                                     <Style TargetType="Border">
                                         <Setter Property="CornerRadius" Value="8"/>
@@ -467,7 +738,7 @@
 
                             <Button Grid.Column="1" Content="THANH TOÁN (F9)" 
                                     Command="{Binding CheckoutCommand}"
-                                    Background="#27AE60" Foreground="White" FontWeight="Bold" FontSize="15" Height="48" BorderThickness="0" Cursor="Hand">
+                                    Background="#27AE60" Foreground="White" FontWeight="Bold" FontSize="14" Height="44" BorderThickness="0" Cursor="Hand">
                                 <Button.Resources>
                                     <Style TargetType="Border">
                                         <Setter Property="CornerRadius" Value="8"/>
@@ -1680,6 +1951,634 @@
                     </ScrollViewer>
                 </Grid>
             </Border>
+        </Grid>
+
+        <!-- ==================== GIAO DIỆN 6: QUẢN LÝ KHÁCH HÀNG & KHUYẾN MÃI (S04) ==================== -->
+        <Grid Grid.Column="1" Grid.ColumnSpan="2" Margin="25" Visibility="{Binding IsCustomerView, Converter={StaticResource BoolToVis}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" /> <!-- Header & Nút tác vụ -->
+                <RowDefinition Height="*" />    <!-- Bố cục 2 cột: Khách hàng (Trái) & Voucher (Phải) -->
+            </Grid.RowDefinitions>
+
+            <!-- 1. Header & Nút tác vụ -->
+            <Border Grid.Row="0" Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,20" BorderBrush="#E8ECEF" BorderThickness="1">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                        <TextBlock Text="👥 QUẢN LÝ KHÁCH HÀNG THÀNH VIÊN &amp; CHƯƠNG TRÌNH KHUYẾN MÃI (S04)" FontWeight="Bold" FontSize="18" Foreground="#2C3E50"/>
+                        <TextBlock Text="Tích điểm thành viên, phân hạng tự động và cấu hình mã giảm giá / voucher toàn hệ thống" FontSize="12" Foreground="#7F8C8D" Margin="0,3,0,0"/>
+                    </StackPanel>
+
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Nút Thêm khách hàng -->
+                        <Button Content="➕ Thêm Khách Hàng" Command="{Binding OpenAddCustomerDialogCommand}"
+                                Background="#3182CE" Foreground="White" FontWeight="Bold" FontSize="13" Padding="14,10" Margin="0,0,10,0" BorderThickness="0" Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
+                        <!-- Nút Tạo Voucher Mới -->
+                        <Button Content="🎟️ Tạo Voucher Mới" Command="{Binding OpenAddPromotionDialogCommand}"
+                                Background="#E67E22" Foreground="White" FontWeight="Bold" FontSize="13" Padding="14,10" Margin="0,0,10,0" BorderThickness="0" Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
+                        <!-- Nút Làm Mới -->
+                        <Button Content="🔄 Làm mới" Command="{Binding LoadCustomerManagementDataCommand}"
+                                Background="#F1F3F5" Foreground="#2C3E50" FontWeight="Bold" Padding="14,10" BorderThickness="0" Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- 2. Bố cục 2 cột: Cột Trái (Hội Viên) - Cột Phải (Voucher) -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*" /> <!-- Danh sách thành viên -->
+                    <ColumnDefinition Width="2*" /> <!-- Danh sách voucher -->
+                </Grid.ColumnDefinitions>
+
+                <!-- CỘT 1: DANH SÁCH THÀNH VIÊN KHÁCH HÀNG -->
+                <Border Grid.Column="0" Background="White" CornerRadius="12" Padding="20" Margin="0,0,15,0" BorderBrush="#E8ECEF" BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" /> <!-- Tiêu đề -->
+                            <RowDefinition Height="Auto" /> <!-- Tìm kiếm & Bộ lọc Hạng -->
+                            <RowDefinition Height="*" />    <!-- Danh sách thành viên -->
+                        </Grid.RowDefinitions>
+
+                        <DockPanel Grid.Row="0" Margin="0,0,0,10">
+                            <TextBlock Text="👤 Danh Sách Hội Viên Thành Viên" FontWeight="Bold" FontSize="15" Foreground="#2C3E50"/>
+                            <TextBlock Text="{Binding TotalCustomerCount, StringFormat='({0} khách hàng)'}" FontSize="12" Foreground="#27AE60" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </DockPanel>
+
+                        <!-- Ô tìm kiếm & Bộ lọc hạng -->
+                        <Grid Grid.Row="1" Margin="0,0,0,12">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,0,0,8">
+                                <TextBox Text="{Binding CustomerSearchKeyword, UpdateSourceTrigger=PropertyChanged}"
+                                         Height="34" Padding="28,0,10,0" VerticalContentAlignment="Center" FontSize="12" BorderBrush="#BDC3C7">
+                                    <TextBox.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="6"/>
+                                        </Style>
+                                    </TextBox.Resources>
+                                </TextBox>
+                                <TextBlock Text="🔍" FontSize="12" Foreground="#95A5A6" VerticalAlignment="Center" Margin="8,0,0,0" IsHitTestVisible="False"/>
+                                <TextBlock Text="Tìm kiếm theo Tên khách hàng hoặc Số điện thoại..." FontSize="11" Foreground="#BDC3C7"
+                                           VerticalAlignment="Center" Margin="30,0,0,0" IsHitTestVisible="False">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding CustomerSearchKeyword}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+
+                            <!-- Tags lọc Hạng thành viên -->
+                            <StackPanel Grid.Row="1" Orientation="Horizontal">
+                                <Button Content="Tất cả" Command="{Binding FilterCustomerByTierCommand}" CommandParameter="ALL"
+                                        Padding="10,4" Margin="0,0,5,0" FontSize="11" FontWeight="SemiBold" Cursor="Hand" BorderThickness="0">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="#F1F3F5"/>
+                                            <Setter Property="Foreground" Value="#2C3E50"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding CustomerTierFilter}" Value="ALL">
+                                                    <Setter Property="Background" Value="#2C3E50"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+
+                                <Button Content="🥉 Đồng" Command="{Binding FilterCustomerByTierCommand}" CommandParameter="BRONZE"
+                                        Padding="10,4" Margin="0,0,5,0" FontSize="11" FontWeight="SemiBold" Cursor="Hand" BorderThickness="0">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="#F1F3F5"/>
+                                            <Setter Property="Foreground" Value="#2C3E50"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding CustomerTierFilter}" Value="BRONZE">
+                                                    <Setter Property="Background" Value="#D35400"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+
+                                <Button Content="🥈 Bạc (-5%)" Command="{Binding FilterCustomerByTierCommand}" CommandParameter="SILVER"
+                                        Padding="10,4" Margin="0,0,5,0" FontSize="11" FontWeight="SemiBold" Cursor="Hand" BorderThickness="0">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="#F1F3F5"/>
+                                            <Setter Property="Foreground" Value="#2C3E50"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding CustomerTierFilter}" Value="SILVER">
+                                                    <Setter Property="Background" Value="#7F8C8D"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+
+                                <Button Content="🥇 Vàng (-10%)" Command="{Binding FilterCustomerByTierCommand}" CommandParameter="GOLD"
+                                        Padding="10,4" Margin="0,0,5,0" FontSize="11" FontWeight="SemiBold" Cursor="Hand" BorderThickness="0">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="#F1F3F5"/>
+                                            <Setter Property="Foreground" Value="#2C3E50"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding CustomerTierFilter}" Value="GOLD">
+                                                    <Setter Property="Background" Value="#F39C12"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+
+                                <Button Content="💎 Kim Cương (-15%)" Command="{Binding FilterCustomerByTierCommand}" CommandParameter="DIAMOND"
+                                        Padding="10,4" Margin="0,0,5,0" FontSize="11" FontWeight="SemiBold" Cursor="Hand" BorderThickness="0">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="#F1F3F5"/>
+                                            <Setter Property="Foreground" Value="#2C3E50"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding CustomerTierFilter}" Value="DIAMOND">
+                                                    <Setter Property="Background" Value="#2980B9"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <Button.Resources>
+                                        <Style TargetType="Border">
+                                            <Setter Property="CornerRadius" Value="4"/>
+                                        </Style>
+                                    </Button.Resources>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Danh sách hội viên -->
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding ManagedCustomers}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="0,0,0,10" Padding="14,12" Background="#FAFAFA" CornerRadius="8" BorderBrush="#EEEEEE" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="130" />
+                                                    <ColumnDefinition Width="110" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <!-- Họ tên & SĐT -->
+                                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding FullName}" FontWeight="Bold" FontSize="14" Foreground="#2C3E50"/>
+                                                        <Border Background="#FEFCBF" CornerRadius="4" Padding="6,1" Margin="8,0,0,0">
+                                                            <TextBlock Text="{Binding TierBadge}" FontSize="10" FontWeight="Bold" Foreground="{Binding TierColor}"/>
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding PhoneNumber, StringFormat='SĐT: {0}'}" FontSize="11" Foreground="#7F8C8D" Margin="0,2,0,0"/>
+                                                </StackPanel>
+
+                                                <!-- Điểm tích lũy & Chi tiêu -->
+                                                <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                        <TextBlock Text="{Binding TotalPoints}" FontWeight="Bold" FontSize="15" Foreground="#2980B9"/>
+                                                        <TextBlock Text="điểm" FontSize="11" Foreground="#7F8C8D" Margin="3,0,0,0" VerticalAlignment="Bottom"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding TotalSpent, StringFormat='Đã chi: {0:N0} đ'}" FontSize="10" Foreground="#BDC3C7" HorizontalAlignment="Right" Margin="0,2,0,0"/>
+                                                </StackPanel>
+
+                                                <!-- Nút Điều chỉnh điểm / Hạng -->
+                                                <Button Grid.Column="2" Content="⭐ Điểm / Hạng" 
+                                                        Command="{Binding DataContext.OpenAdjustCustomerPointsDialogCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Background="#ED8936" Foreground="White" FontWeight="Bold" FontSize="11"
+                                                        Padding="8,6" VerticalAlignment="Center" Cursor="Hand" BorderThickness="0">
+                                                    <Button.Resources>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="CornerRadius" Value="6"/>
+                                                        </Style>
+                                                    </Button.Resources>
+                                                </Button>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+
+                <!-- CỘT 2: DANH SÁCH VOUCHER & CHƯƠNG TRÌNH KHUYẾN MÃI -->
+                <Border Grid.Column="1" Background="White" CornerRadius="12" Padding="20" BorderBrush="#E8ECEF" BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <DockPanel Grid.Row="0" Margin="0,0,0,15">
+                            <TextBlock Text="🎟️ Danh Sách Voucher / Ưu Đãi" FontWeight="Bold" FontSize="15" Foreground="#2C3E50"/>
+                            <TextBlock Text="{Binding TotalActivePromotions, StringFormat='({0} đang chạy)'}" FontSize="12" Foreground="#27AE60" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </DockPanel>
+
+                        <!-- Danh sách voucher -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding ManagedPromotions}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="0,0,0,10" Padding="14,12" Background="#FAFAFA" CornerRadius="8" BorderBrush="#EEEEEE" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Dòng 1: Mã Voucher, Tên chương trình, Trạng thái -->
+                                                <DockPanel Grid.Row="0">
+                                                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                                                        <Border Background="#FED7D7" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
+                                                            <TextBlock Text="{Binding PromotionCode}" FontWeight="Bold" FontSize="11" Foreground="#C53030"/>
+                                                        </Border>
+                                                        <TextBlock Text="{Binding PromotionName}" FontWeight="Bold" FontSize="12" Foreground="#2C3E50" TextTrimming="CharacterEllipsis" MaxWidth="190"/>
+                                                    </StackPanel>
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding StatusBadge}" FontWeight="Bold" FontSize="10" Foreground="{Binding StatusColor}" HorizontalAlignment="Right"/>
+                                                </DockPanel>
+
+                                                <!-- Dòng 2: Mức giảm & Lượt dùng -->
+                                                <DockPanel Grid.Row="1" Margin="0,6,0,8">
+                                                    <TextBlock DockPanel.Dock="Left" Text="{Binding DiscountDisplay}" FontSize="12" Foreground="#27AE60" FontWeight="SemiBold"/>
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding UsedCount, StringFormat='Đã dùng: {0} lượt'}" FontSize="11" Foreground="#7F8C8D" HorizontalAlignment="Right"/>
+                                                </DockPanel>
+
+                                                <!-- Dòng 3: Nút Sửa & Bật/Tắt -->
+                                                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                                                    <Button Content="✏️ Sửa" 
+                                                            Command="{Binding DataContext.OpenEditPromotionDialogCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Background="#3182CE" Foreground="White" FontWeight="Bold" FontSize="10"
+                                                            Padding="8,4" Margin="0,0,6,0" Cursor="Hand" BorderThickness="0">
+                                                        <Button.Resources>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="CornerRadius" Value="4"/>
+                                                            </Style>
+                                                        </Button.Resources>
+                                                    </Button>
+
+                                                    <Button Content="Bật/Tắt" 
+                                                            Command="{Binding DataContext.TogglePromotionActiveCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Background="#718096" Foreground="White" FontWeight="Bold" FontSize="10"
+                                                            Padding="8,4" Cursor="Hand" BorderThickness="0">
+                                                        <Button.Resources>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="CornerRadius" Value="4"/>
+                                                            </Style>
+                                                        </Button.Resources>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- ==================== GIAO DIỆN 7: QUẢN LÝ NHÂN SỰ & CA LÀM VIỆC (S01 & S02) ==================== -->
+        <Grid Grid.Column="1" Grid.ColumnSpan="2" Margin="25"
+              Visibility="{Binding IsEmployeeView, Converter={StaticResource BoolToVis}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Tiêu đề Header -->
+            <Border Grid.Row="0" Background="White" CornerRadius="10" Padding="20,15" Margin="0,0,0,15" BorderBrush="#E2E8F0" BorderThickness="1">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Left">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="👔 QUẢN LÝ NHÂN SỰ, PHÂN QUYỀN &amp; CA LÀM VIỆC (S01 &amp; S02)" FontWeight="Bold" FontSize="18" Foreground="#2C3E50"/>
+                            <Border Background="#EBF8FF" CornerRadius="6" Padding="8,3" Margin="12,0,0,0">
+                                <TextBlock Text="{Binding TotalEmployeeCount, StringFormat='Tổng: {0} nhân sự'}" FontWeight="Bold" FontSize="11" Foreground="#2B6CB0"/>
+                            </Border>
+                            <Border Background="#FEFCBF" CornerRadius="6" Padding="8,3" Margin="8,0,0,0">
+                                <TextBlock Text="{Binding TotalShiftCount, StringFormat='Đã ghi nhận {0} ca'}" FontWeight="Bold" FontSize="11" Foreground="#B7791F"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="Hồ sơ nhân viên, phân quyền chức vụ, gán chi nhánh và kết toán sổ quỹ Z-Report từng ca" FontSize="12" Foreground="#7F8C8D" Margin="0,4,0,0"/>
+                    </StackPanel>
+
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="➕ Thêm Nhân Viên" Command="{Binding OpenAddEmployeeDialogCommand}"
+                                Background="#2B6CB0" Foreground="White" FontWeight="Bold" FontSize="12"
+                                Padding="14,8" BorderThickness="0" Cursor="Hand" Margin="0,0,10,0">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="6"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
+                        <Button Content="🔄 Làm mới" Command="{Binding LoadEmployeeManagementDataCommand}"
+                                Background="#EDF2F7" Foreground="#4A5568" FontWeight="SemiBold" FontSize="12"
+                                Padding="12,8" BorderThickness="0" Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="6"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- 2 Cột Nội Dung: Cột 1 = Danh Sách Nhân Viên, Cột 2 = Lịch Sử Ca Làm Việc & Z-Report -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.1*"/>
+                    <ColumnDefinition Width="0.9*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- CỘT 1: DANH SÁCH NHÂN SỰ & PHÂN QUYỀN -->
+                <Border Grid.Column="0" Background="White" CornerRadius="10" Padding="18" Margin="0,0,10,0" BorderBrush="#E2E8F0" BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Header Cột 1 -->
+                        <DockPanel Grid.Row="0" Margin="0,0,0,10">
+                            <TextBlock Text="👥 Danh Sách Nhân Sự" FontWeight="Bold" FontSize="14" Foreground="#2D3748"/>
+                        </DockPanel>
+
+                        <!-- Ô tìm kiếm & Bộ lọc vai trò -->
+                        <StackPanel Grid.Row="1" Margin="0,0,0,12">
+                            <TextBox Text="{Binding EmployeeSearchKeyword, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="34" Padding="10,0" VerticalContentAlignment="Center" FontSize="12" BorderBrush="#CBD5E0" Margin="0,0,0,8">
+                                <TextBox.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="6"/>
+                                    </Style>
+                                </TextBox.Resources>
+                            </TextBox>
+
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Tất cả" Command="{Binding FilterEmployeeRoleCommand}" CommandParameter="ALL"
+                                        Padding="10,4" Margin="0,0,5,0" Background="#EDF2F7" Foreground="#2D3748" FontWeight="SemiBold" FontSize="11" BorderThickness="0" Cursor="Hand"/>
+                                <Button Content="Quản lý" Command="{Binding FilterEmployeeRoleCommand}" CommandParameter="BRANCH_MANAGER"
+                                        Padding="10,4" Margin="0,0,5,0" Background="#EBF8FF" Foreground="#2B6CB0" FontWeight="SemiBold" FontSize="11" BorderThickness="0" Cursor="Hand"/>
+                                <Button Content="Thu ngân" Command="{Binding FilterEmployeeRoleCommand}" CommandParameter="CASHIER"
+                                        Padding="10,4" Margin="0,0,5,0" Background="#F0FFF4" Foreground="#22543D" FontWeight="SemiBold" FontSize="11" BorderThickness="0" Cursor="Hand"/>
+                                <Button Content="Pha chế" Command="{Binding FilterEmployeeRoleCommand}" CommandParameter="BARISTA"
+                                        Padding="10,4" Margin="0,0,5,0" Background="#FFFAF0" Foreground="#C05621" FontWeight="SemiBold" FontSize="11" BorderThickness="0" Cursor="Hand"/>
+                                <Button Content="Thủ kho" Command="{Binding FilterEmployeeRoleCommand}" CommandParameter="INVENTORY_STAFF"
+                                        Padding="10,4" Background="#E6FFFA" Foreground="#234E52" FontWeight="SemiBold" FontSize="11" BorderThickness="0" Cursor="Hand"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Danh sách Nhân viên -->
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding ManagedEmployees}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#F8FAFC" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="#E2E8F0" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Dòng 1: Tên, Mã NV, Role Badge -->
+                                                <DockPanel Grid.Row="0">
+                                                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding FullName}" FontWeight="Bold" FontSize="13" Foreground="#1A202C"/>
+                                                        <TextBlock Text="{Binding EmployeeCode, StringFormat=' ({0})'}" FontSize="11" Foreground="#718096" Margin="4,0,0,0"/>
+                                                    </StackPanel>
+
+                                                    <Border DockPanel.Dock="Right" Background="{Binding RoleBadgeColor}" CornerRadius="4" Padding="6,2">
+                                                        <TextBlock Text="{Binding RoleName}" Foreground="White" FontWeight="Bold" FontSize="10"/>
+                                                    </Border>
+                                                </DockPanel>
+
+                                                <!-- Dòng 2: Chi nhánh, SĐT, User -->
+                                                <StackPanel Grid.Row="1" Margin="0,6,0,8">
+                                                    <DockPanel Margin="0,0,0,2">
+                                                        <TextBlock Text="🏢 Chi nhánh:" FontSize="11" Foreground="#718096"/>
+                                                        <TextBlock Text="{Binding BranchName}" FontSize="11" FontWeight="SemiBold" Foreground="#2D3748" HorizontalAlignment="Right"/>
+                                                    </DockPanel>
+                                                    <DockPanel Margin="0,0,0,2">
+                                                        <TextBlock Text="📞 SĐT / Username:" FontSize="11" Foreground="#718096"/>
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                            <TextBlock Text="{Binding Phone}" FontSize="11" Foreground="#4A5568"/>
+                                                            <TextBlock Text=" | User: " FontSize="11" Foreground="#A0AEC0"/>
+                                                            <TextBlock Text="{Binding Username}" FontSize="11" FontWeight="Bold" Foreground="#2B6CB0"/>
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                    <DockPanel>
+                                                        <TextBlock Text="Trạng thái:" FontSize="11" Foreground="#718096"/>
+                                                        <TextBlock Text="{Binding StatusBadge}" FontSize="11" FontWeight="SemiBold" Foreground="{Binding StatusColor}" HorizontalAlignment="Right"/>
+                                                    </DockPanel>
+                                                </StackPanel>
+
+                                                <!-- Dòng 3: Thao tác -->
+                                                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                                                    <Button Content="✏️ Sửa"
+                                                            Command="{Binding DataContext.OpenEditEmployeeDialogCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Background="#3182CE" Foreground="White" FontWeight="Bold" FontSize="10"
+                                                            Padding="8,4" Margin="0,0,6,0" Cursor="Hand" BorderThickness="0">
+                                                        <Button.Resources>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="CornerRadius" Value="4"/>
+                                                            </Style>
+                                                        </Button.Resources>
+                                                    </Button>
+
+                                                    <Button Content="🔑 Reset Pass"
+                                                            Command="{Binding DataContext.ResetEmployeePasswordCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Background="#DD6B20" Foreground="White" FontWeight="Bold" FontSize="10"
+                                                            Padding="8,4" Margin="0,0,6,0" Cursor="Hand" BorderThickness="0">
+                                                        <Button.Resources>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="CornerRadius" Value="4"/>
+                                                            </Style>
+                                                        </Button.Resources>
+                                                    </Button>
+
+                                                    <Button Content="Bật/Tắt"
+                                                            Command="{Binding DataContext.ToggleEmployeeStatusCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Background="#718096" Foreground="White" FontWeight="Bold" FontSize="10"
+                                                            Padding="8,4" Cursor="Hand" BorderThickness="0">
+                                                        <Button.Resources>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="CornerRadius" Value="4"/>
+                                                            </Style>
+                                                        </Button.Resources>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+
+                <!-- CỘT 2: LỊCH SỬ CA LÀM VIỆC & SỔ QUỸ Z-REPORT -->
+                <Border Grid.Column="1" Background="White" CornerRadius="10" Padding="18" BorderBrush="#E2E8F0" BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Header Cột 2 -->
+                        <DockPanel Grid.Row="0" Margin="0,0,0,10">
+                            <TextBlock Text="📋 Lịch Sử Ca Làm Việc &amp; Z-Report" FontWeight="Bold" FontSize="14" Foreground="#2D3748"/>
+                        </DockPanel>
+
+                        <!-- Bộ lọc ca -->
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+                            <Button Content="Tất cả ca" Command="{Binding FilterShiftStatusCommand}" CommandParameter="ALL"
+                                    Padding="10,4" Margin="0,0,6,0" Background="#EDF2F7" Foreground="#2D3748" FontWeight="SemiBold" FontSize="11" BorderThickness="0" Cursor="Hand"/>
+                            <Button Content="🟢 Đang mở" Command="{Binding FilterShiftStatusCommand}" CommandParameter="OPEN"
+                                    Padding="10,4" Margin="0,0,6,0" Background="#F0FFF4" Foreground="#22543D" FontWeight="SemiBold" FontSize="11" BorderThickness="0" Cursor="Hand"/>
+                            <Button Content="🔒 Đã kết ca" Command="{Binding FilterShiftStatusCommand}" CommandParameter="CLOSED"
+                                    Padding="10,4" Background="#EDF2F7" Foreground="#4A5568" FontWeight="SemiBold" FontSize="11" BorderThickness="0" Cursor="Hand"/>
+                        </StackPanel>
+
+                        <!-- Danh sách Ca làm việc -->
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding ManagedShifts}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#F8FAFC" CornerRadius="8" Padding="12" Margin="0,0,0,8" BorderBrush="#E2E8F0" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Dòng 1: Mã ca, Tên ca, Status Badge -->
+                                                <DockPanel Grid.Row="0">
+                                                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding ShiftName}" FontWeight="Bold" FontSize="12" Foreground="#1A202C"/>
+                                                        <TextBlock Text="{Binding ShiftCode, StringFormat=' ({0})'}" FontSize="11" Foreground="#718096" Margin="4,0,0,0"/>
+                                                    </StackPanel>
+
+                                                    <Border DockPanel.Dock="Right" Background="{Binding StatusColor}" CornerRadius="4" Padding="6,2">
+                                                        <TextBlock Text="{Binding StatusBadge}" Foreground="White" FontWeight="Bold" FontSize="10"/>
+                                                    </Border>
+                                                </DockPanel>
+
+                                                <!-- Dòng 2: Chi tiết doanh thu & két tiền -->
+                                                <StackPanel Grid.Row="1" Margin="0,6,0,8">
+                                                    <DockPanel Margin="0,0,0,2">
+                                                        <TextBlock Text="👤 Thu ngân:" FontSize="11" Foreground="#718096"/>
+                                                        <TextBlock Text="{Binding CashierName}" FontSize="11" FontWeight="SemiBold" Foreground="#2D3748" HorizontalAlignment="Right"/>
+                                                    </DockPanel>
+
+                                                    <DockPanel Margin="0,0,0,2">
+                                                        <TextBlock Text="💰 Doanh thu ca:" FontSize="11" Foreground="#718096"/>
+                                                        <TextBlock Text="{Binding TotalSales, StringFormat='{}{0:N0} đ'}" FontSize="11" FontWeight="Bold" Foreground="#27AE60" HorizontalAlignment="Right"/>
+                                                    </DockPanel>
+
+                                                    <DockPanel Margin="0,0,0,2">
+                                                        <TextBlock Text="💵 Tiền đầu ca / Tiền mặt:" FontSize="11" Foreground="#718096"/>
+                                                        <TextBlock Text="{Binding ExpectedClosingCash, StringFormat='Két lý thuyết: {0:N0} đ'}" FontSize="11" Foreground="#4A5568" HorizontalAlignment="Right"/>
+                                                    </DockPanel>
+
+                                                    <DockPanel>
+                                                        <TextBlock Text="Đối soát quỹ:" FontSize="11" Foreground="#718096"/>
+                                                        <TextBlock Text="{Binding DifferenceDisplay}" FontSize="11" FontWeight="Bold" Foreground="{Binding DifferenceColor}" HorizontalAlignment="Right"/>
+                                                    </DockPanel>
+                                                </StackPanel>
+
+                                                <!-- Dòng 3: Nút Xem Z-Report -->
+                                                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                                                    <Button Content="📄 Xem Z-Report"
+                                                            Command="{Binding DataContext.ViewShiftZReportCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Background="#2B6CB0" Foreground="White" FontWeight="Bold" FontSize="10"
+                                                            Padding="10,4" Cursor="Hand" BorderThickness="0">
+                                                        <Button.Resources>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="CornerRadius" Value="4"/>
+                                                            </Style>
+                                                        </Button.Resources>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
     </Grid>
 </Window>

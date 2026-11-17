@@ -25,6 +25,9 @@ public class CafeDbContext : DbContext
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRoleBranchAssignment> UserRoleBranchAssignments => Set<UserRoleBranchAssignment>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Promotion> Promotions => Set<Promotion>();
+    public DbSet<WorkShift> WorkShifts => Set<WorkShift>();
 
     public CafeDbContext()
     {

@@ -300,6 +300,16 @@ public class Order
     public DateTime? HeldAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    public int? CustomerId { get; set; }
+    [MaxLength(30)]
+    public string? PromotionCode { get; set; }
+    public int PointsEarned { get; set; } = 0;
+    public int PointsUsed { get; set; } = 0;
+    public long? ShiftId { get; set; }
+
+    [ForeignKey(nameof(CustomerId))]
+    public Customer? Customer { get; set; }
+
     [ForeignKey(nameof(BranchId))]
     public Branch? Branch { get; set; }
 
@@ -516,4 +526,185 @@ public class UserRoleBranchAssignment
 
     [ForeignKey(nameof(BranchId))]
     public Branch? Branch { get; set; }
+}
+
+[Table("Customers")]
+public class Customer
+{
+    [Key]
+    public int CustomerId { get; set; }
+
+    [Required]
+    [MaxLength(15)]
+    public string PhoneNumber { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(100)]
+    public string FullName { get; set; } = string.Empty;
+
+    [MaxLength(20)]
+    public string MembershipTier { get; set; } = "BRONZE"; // BRONZE, SILVER, GOLD, DIAMOND
+
+    public int TotalPoints { get; set; } = 0;
+    public int LifetimePoints { get; set; } = 0;
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal TotalSpent { get; set; } = 0;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsActive { get; set; } = true;
+
+    [NotMapped]
+    public string TierBadge => MembershipTier switch
+    {
+        "SILVER" => "🥈 Hạng Bạc (-5%)",
+        "GOLD" => "🥇 Hạng Vàng (-10%)",
+        "DIAMOND" => "💎 Kim Cương (-15%)",
+        _ => "🥉 Hạng Đồng (Chuẩn)"
+    };
+
+    [NotMapped]
+    public string TierColor => MembershipTier switch
+    {
+        "SILVER" => "#7F8C8D",
+        "GOLD" => "#F39C12",
+        "DIAMOND" => "#2980B9",
+        _ => "#D35400"
+    };
+
+    [NotMapped]
+    public decimal DiscountPercent => MembershipTier switch
+    {
+        "SILVER" => 5,
+        "GOLD" => 10,
+        "DIAMOND" => 15,
+        _ => 0
+    };
+}
+
+[Table("Promotions")]
+public class Promotion
+{
+    [Key]
+    public int PromotionId { get; set; }
+
+    [Required]
+    [MaxLength(30)]
+    public string PromotionCode { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(150)]
+    public string PromotionName { get; set; } = string.Empty;
+
+    [MaxLength(20)]
+    public string DiscountType { get; set; } = "PERCENT"; // PERCENT, FIXED_AMOUNT, BUY1_GET1
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal DiscountValue { get; set; } = 0;
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? MaxDiscountAmount { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal MinOrderAmount { get; set; } = 0;
+
+    public DateTime StartDate { get; set; } = DateTime.UtcNow;
+    public DateTime EndDate { get; set; } = DateTime.UtcNow.AddMonths(1);
+
+    public int? UsageLimit { get; set; }
+    public int UsedCount { get; set; } = 0;
+
+    public bool IsActive { get; set; } = true;
+
+    [NotMapped]
+    public string DiscountDisplay => DiscountType switch
+    {
+        "PERCENT" => MaxDiscountAmount.HasValue ? $"Giảm {DiscountValue:N0}% (Tối đa {MaxDiscountAmount.Value:N0} đ)" : $"Giảm {DiscountValue:N0}%",
+        "FIXED_AMOUNT" => $"Giảm {DiscountValue:N0} đ",
+        "BUY1_GET1" => "Mua 1 Tặng 1 (Món rẻ nhất)",
+        _ => $"{DiscountValue:N0}"
+    };
+
+    [NotMapped]
+    public string StatusBadge => IsActive && DateTime.UtcNow >= StartDate && DateTime.UtcNow <= EndDate
+        ? (UsageLimit.HasValue && UsedCount >= UsageLimit.Value ? "⛔ Hết lượt dùng" : "✅ Đang áp dụng")
+        : (DateTime.UtcNow > EndDate ? "⌛ Đã hết hạn" : "⏸ Tạm ngưng");
+
+    [NotMapped]
+    public string StatusColor => StatusBadge.StartsWith("✅") ? "#27AE60" : "#E74C3C";
+}
+
+[Table("WorkShifts")]
+public class WorkShift
+{
+    [Key]
+    public long ShiftId { get; set; }
+
+    [Required]
+    [MaxLength(30)]
+    public string ShiftCode { get; set; } = string.Empty;
+
+    public int BranchId { get; set; }
+    public int CashierUserId { get; set; }
+
+    [MaxLength(100)]
+    public string CashierName { get; set; } = string.Empty;
+
+    [MaxLength(50)]
+    public string ShiftName { get; set; } = "Ca Sáng"; // Ca Sáng, Ca Chiều, Ca Tối, Ca Cả Ngày
+
+    public DateTime StartTime { get; set; } = DateTime.UtcNow;
+    public DateTime? EndTime { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal OpeningCash { get; set; } = 0;
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal CashSales { get; set; } = 0;
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal VietQrSales { get; set; } = 0;
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal TotalSales { get; set; } = 0;
+
+    public int TotalOrders { get; set; } = 0;
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal ExpectedClosingCash { get; set; } = 0;
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? ActualClosingCash { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? DifferenceAmount { get; set; }
+
+    [MaxLength(20)]
+    public string Status { get; set; } = "OPEN"; // OPEN, CLOSED
+
+    [MaxLength(500)]
+    public string? Notes { get; set; }
+
+    [ForeignKey(nameof(BranchId))]
+    public Branch? Branch { get; set; }
+
+    [ForeignKey(nameof(CashierUserId))]
+    public UserAccount? CashierUser { get; set; }
+
+    [NotMapped]
+    public string StatusBadge => Status == "OPEN" ? "🟢 Đang mở" : "🔒 Đã kết ca";
+
+    [NotMapped]
+    public string StatusColor => Status == "OPEN" ? "#27AE60" : "#7F8C8D";
+
+    [NotMapped]
+    public string DifferenceDisplay => !DifferenceAmount.HasValue ? "-" :
+        DifferenceAmount.Value == 0 ? "✅ Khớp tiền (0 đ)" :
+        DifferenceAmount.Value > 0 ? $"⚠️ Thừa +{DifferenceAmount.Value:N0} đ" :
+        $"⛔ Thiếu {DifferenceAmount.Value:N0} đ";
+
+    [NotMapped]
+    public string DifferenceColor => !DifferenceAmount.HasValue ? "#7F8C8D" :
+        DifferenceAmount.Value == 0 ? "#27AE60" :
+        DifferenceAmount.Value > 0 ? "#D35400" : "#C0392B";
 }
