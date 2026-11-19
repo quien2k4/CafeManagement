@@ -1,5 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using CafeManagement.Wpf.Models;
+using CafeManagement.Core.Models;
 
 namespace CafeManagement.Wpf.ViewModels;
 

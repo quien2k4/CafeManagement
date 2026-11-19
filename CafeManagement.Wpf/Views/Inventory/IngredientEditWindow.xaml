@@ -1,0 +1,96 @@
+<Window x:Class="CafeManagement.Wpf.Views.Inventory.IngredientEditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Thông Tin Nguyên Liệu" Height="500" Width="480"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#F8F9FA" FontFamily="Segoe UI">
+    <Grid Margin="25">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Tiêu đề -->
+        <Border Grid.Row="0" Background="White" CornerRadius="8" Padding="15,12" Margin="0,0,0,15" BorderBrush="#E8ECEF" BorderThickness="1">
+            <StackPanel>
+                <TextBlock x:Name="TxtTitle" Text="➕ THÊM NGUYÊN LIỆU MỚI VÀO KHO" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/>
+                <TextBlock Text="Cấu hình thông tin nguyên liệu để kiểm kê và lập công thức pha chế" FontSize="11" Foreground="#7F8C8D" Margin="0,3,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Form nhập -->
+        <Border Grid.Row="1" Background="White" CornerRadius="8" Padding="20" BorderBrush="#E8ECEF" BorderThickness="1">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- Mã nguyên liệu -->
+                    <TextBlock Text="Mã nguyên liệu:" FontWeight="SemiBold" FontSize="12" Foreground="#2C3E50" Margin="0,0,0,5"/>
+                    <TextBox x:Name="TxtIngredientCode" Height="38" Padding="10,0" VerticalContentAlignment="Center"
+                             FontSize="13" BorderBrush="#BDC3C7" Margin="0,0,0,15"/>
+
+                    <!-- Tên nguyên liệu -->
+                    <TextBlock Text="Tên nguyên vật liệu (*):" FontWeight="SemiBold" FontSize="12" Foreground="#2C3E50" Margin="0,0,0,5"/>
+                    <TextBox x:Name="TxtIngredientName" Height="38" Padding="10,0" VerticalContentAlignment="Center"
+                             FontSize="13" BorderBrush="#BDC3C7" Margin="0,0,0,15"/>
+
+                    <!-- Đơn vị tính cơ bản -->
+                    <Grid Margin="0,0,0,15">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="Đơn vị tính cơ bản (*):" FontWeight="SemiBold" FontSize="12" Foreground="#2C3E50" Margin="0,0,0,5"/>
+                            <ComboBox x:Name="CboBaseUom" Height="38" FontSize="13" VerticalContentAlignment="Center">
+                                <ComboBoxItem Content="g (gram)" IsSelected="True"/>
+                                <ComboBoxItem Content="ml (mililit)"/>
+                                <ComboBoxItem Content="lon"/>
+                                <ComboBoxItem Content="hộp"/>
+                                <ComboBoxItem Content="gói"/>
+                                <ComboBoxItem Content="cái"/>
+                                <ComboBoxItem Content="kg"/>
+                                <ComboBoxItem Content="l (lít)"/>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                            <TextBlock Text="Cảnh báo an toàn tối thiểu:" FontWeight="SemiBold" FontSize="12" Foreground="#2C3E50" Margin="0,0,0,5"/>
+                            <TextBox x:Name="TxtMinStockAlert" Height="38" Padding="10,0" VerticalContentAlignment="Center"
+                                     FontSize="13" BorderBrush="#BDC3C7" Text="500"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Tồn kho ban đầu (chỉ hiện khi tạo mới) -->
+                    <StackPanel x:Name="PnlInitialStock" Margin="0,0,0,5">
+                        <TextBlock Text="Số lượng tồn kho ban đầu (tùy chọn):" FontWeight="SemiBold" FontSize="12" Foreground="#2C3E50" Margin="0,0,0,5"/>
+                        <TextBox x:Name="TxtInitialStock" Height="38" Padding="10,0" VerticalContentAlignment="Center"
+                                 FontSize="13" BorderBrush="#BDC3C7" Text="0"/>
+                        <TextBlock Text="* Nếu nhập số lượng ban đầu > 0, hệ thống sẽ tự động ghi sổ thẻ kho." FontSize="11" Foreground="#7F8C8D" Margin="0,3,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Nút thao tác -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="Hủy bỏ" Click="Cancel_Click" Width="100" Height="40" Background="#95A5A6" Foreground="White"
+                    FontWeight="SemiBold" FontSize="13" BorderThickness="0" Margin="0,0,10,0" Cursor="Hand">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="6"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+
+            <Button Content="💾 Lưu Nguyên Liệu" Click="Save_Click" Width="160" Height="40" Background="#27AE60" Foreground="White"
+                    FontWeight="Bold" FontSize="13" BorderThickness="0" Cursor="Hand">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="6"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>

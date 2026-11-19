@@ -2,11 +2,33 @@ using System.Collections.ObjectModel;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.EntityFrameworkCore;
-using CafeManagement.Wpf.Data;
-using CafeManagement.Wpf.Models;
+using CafeManagement.Core.Models;
 using CafeManagement.Wpf.Views;
+using CafeManagement.Wpf.Views.Products;
+using CafeManagement.Wpf.Views.Recipes;
+using CafeManagement.Wpf.Views.Customers;
+using CafeManagement.Wpf.Views.Promotions;
+using CafeManagement.Wpf.Views.Checkout;
+using CafeManagement.Wpf.Views.POS;
+using CafeManagement.Wpf.Views.WorkShifts;
 using CafeManagement.Wpf.Services;
+using CafeManagement.Wpf.Services.Authentication;
+using CafeManagement.Wpf.Services.Http;
+using CafeManagement.Core.DTOs.Products;
+using CafeManagement.Core.DTOs.Customers;
+using CafeManagement.Core.DTOs.Promotions;
+using CafeManagement.Core.DTOs.Orders;
+using CafeManagement.Core.DTOs.WorkShifts;
+using CafeManagement.Core.DTOs.KDS;
+using CafeManagement.Core.DTOs.Inventory;
+using CafeManagement.Core.DTOs.Employees;
+using CafeManagement.Core.DTOs.Reports;
+using CafeManagement.Wpf.ViewModels.KDS;
+using CafeManagement.Wpf.ViewModels.Inventory;
+using CafeManagement.Wpf.ViewModels.Employees;
+using CafeManagement.Wpf.ViewModels.Reports;
+using CafeManagement.Wpf.Views.Inventory;
+using CafeManagement.Wpf.Views.Employees;
 using System.Windows;
 
 namespace CafeManagement.Wpf.ViewModels;
@@ -75,7 +97,6 @@ public class HeldOrder
 
 public partial class MainViewModel : ObservableObject
 {
-    private readonly CafeDbContext _db = new();
     private readonly DispatcherTimer _timer = new();
 
     private static string GenerateOrderNumber() => $"HD{DateTime.Now:yyMMddHHmmss}-{Random.Shared.Next(100, 999)}";
@@ -427,367 +448,23 @@ public partial class MainViewModel : ObservableObject
         await LoadEmployeeManagementDataAsync();
     }
 
-    // ==================== LOGIC BÁN HÀNG POS & SEEDING ====================
+    // ==================== LOGIC BÁN HÀNG POS ====================
     [RelayCommand]
     public async Task LoadDataAsync()
     {
         try
         {
-            await EnsureSeedDataAsync();
-
-            var cats = await _db.ProductCategories
-                .Where(c => c.IsActive)
-                .OrderBy(c => c.DisplayOrder)
-                .ToListAsync();
-
+            var cats = await ProductApiClient.Instance.GetCategoriesAsync(activeOnly: true);
             Categories = new ObservableCollection<ProductCategory>(cats);
             await FilterProductsAsync(null);
 
             // Kiểm tra ca làm việc đang mở của chi nhánh
             int curBranchId = CurrentSession.BranchId;
-            CurrentShift = await _db.WorkShifts
-                .Where(s => s.BranchId == curBranchId && s.Status == "OPEN")
-                .OrderByDescending(s => s.ShiftId)
-                .FirstOrDefaultAsync();
+            CurrentShift = await ShiftApiClient.Instance.GetCurrentOpenShiftAsync(curBranchId);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Lỗi kết nối CSDL: {ex.Message}", "Lỗi CSDL", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
-    private async Task EnsureSeedDataAsync()
-    {
-        // 1. Seed thêm món nếu thiếu
-        var count = await _db.Products.CountAsync();
-        if (count < 4)
-        {
-            var catCoffee = await _db.ProductCategories.FirstOrDefaultAsync(c => c.CategoryCode == "CAT_COFFEE");
-            var catTeas = await _db.ProductCategories.FirstOrDefaultAsync(c => c.CategoryCode == "CAT_TEAS");
-            var catCake = await _db.ProductCategories.FirstOrDefaultAsync(c => c.CategoryCode == "CAT_CAKE");
-
-            if (catCoffee != null && !await _db.Products.AnyAsync(p => p.ProductCode == "CF_BAC_XIU"))
-            {
-                var bacXiu = new Product
-                {
-                    CategoryId = catCoffee.CategoryId,
-                    ProductCode = "CF_BAC_XIU",
-                    ProductName = "Bạc Xỉu Đá Sữa Tươi",
-                    Description = "Nhiều sữa ít cà phê, béo ngậy thơm ngon",
-                    BasePrice = 32000
-                };
-                bacXiu.Variants.Add(new ProductVariant { SkuCode = "CF_BAC_XIU_M", Size = "M", Temperature = "ICED", ExtraPrice = 0 });
-                bacXiu.Variants.Add(new ProductVariant { SkuCode = "CF_BAC_XIU_L", Size = "L", Temperature = "ICED", ExtraPrice = 6000 });
-                _db.Products.Add(bacXiu);
-            }
-
-            if (catTeas != null && !await _db.Products.AnyAsync(p => p.ProductCode == "TEA_DAO_CAM_SA"))
-            {
-                var traDao = new Product
-                {
-                    CategoryId = catTeas.CategoryId,
-                    ProductCode = "TEA_DAO_CAM_SA",
-                    ProductName = "Trà Đào Cam Sả",
-                    Description = "Trà đen thanh mát kết hợp đào miếng giòn ngọt và hương sả",
-                    BasePrice = 45000
-                };
-                traDao.Variants.Add(new ProductVariant { SkuCode = "TEA_DAO_CAM_SA_M", Size = "M", Temperature = "ICED", ExtraPrice = 0 });
-                traDao.Variants.Add(new ProductVariant { SkuCode = "TEA_DAO_CAM_SA_L", Size = "L", Temperature = "ICED", ExtraPrice = 8000 });
-                _db.Products.Add(traDao);
-            }
-
-            if (catTeas != null && !await _db.Products.AnyAsync(p => p.ProductCode == "TEA_SUA_OOLONG"))
-            {
-                var traSua = new Product
-                {
-                    CategoryId = catTeas.CategoryId,
-                    ProductCode = "TEA_SUA_OOLONG",
-                    ProductName = "Trà Sữa Oolong Nướng",
-                    Description = "Trà oolong đậm vị rang nướng hòa quyện sữa béo",
-                    BasePrice = 38000
-                };
-                traSua.Variants.Add(new ProductVariant { SkuCode = "TEA_SUA_OOLONG_M", Size = "M", Temperature = "ICED", ExtraPrice = 0 });
-                traSua.Variants.Add(new ProductVariant { SkuCode = "TEA_SUA_OOLONG_L", Size = "L", Temperature = "ICED", ExtraPrice = 7000 });
-                _db.Products.Add(traSua);
-            }
-
-            if (catCake != null && !await _db.Products.AnyAsync(p => p.ProductCode == "CAKE_CROISSANT"))
-            {
-                var banh = new Product
-                {
-                    CategoryId = catCake.CategoryId,
-                    ProductCode = "CAKE_CROISSANT",
-                    ProductName = "Bánh Croissant Bơ Tỏi",
-                    Description = "Bánh sừng bò nướng giòn thơm mùi bơ Pháp",
-                    BasePrice = 28000
-                };
-                banh.Variants.Add(new ProductVariant { SkuCode = "CAKE_CROISSANT_STD", Size = "M", Temperature = "HOT", ExtraPrice = 0 });
-                _db.Products.Add(banh);
-            }
-
-            await _db.SaveChangesAsync();
-        }
-
-        // 2. Seed Nguyên liệu và Tồn kho chi nhánh 1
-        var ingCount = await _db.Ingredients.CountAsync();
-        if (ingCount < 6)
-        {
-            var defaultIngredients = new List<(string Code, string Name, string Uom, decimal Alert, decimal InitialStock)>
-            {
-                ("ING_SUATUOI", "Sữa tươi thanh trùng", "ml", 2000, 8000),
-                ("ING_TRA_DEN", "Cốt trà đen hương đào", "ml", 1000, 5000),
-                ("ING_TRA_OOLONG", "Cốt trà Oolong nướng", "ml", 1000, 5000),
-                ("ING_DAO_MIENG", "Đào ngâm đóng hộp", "g", 500, 2500),
-                ("ING_TRANCHAU", "Trân châu trắng 3Q", "g", 500, 3000),
-                ("ING_KEMCHEESE", "Kem Cheese Macchiato", "ml", 500, 1500)
-            };
-
-            foreach (var di in defaultIngredients)
-            {
-                if (!await _db.Ingredients.AnyAsync(i => i.IngredientCode == di.Code))
-                {
-                    _db.Ingredients.Add(new Ingredient
-                    {
-                        IngredientCode = di.Code,
-                        IngredientName = di.Name,
-                        BaseUom = di.Uom,
-                        MinStockAlert = di.Alert
-                    });
-                }
-            }
-            await _db.SaveChangesAsync();
-        }
-
-        // Khởi tạo tồn kho BranchInventory cho Branch 1
-        var branch = await _db.Branches.FirstOrDefaultAsync() ?? new Branch { BranchId = 1 };
-        var allIngs = await _db.Ingredients.ToListAsync();
-        foreach (var ing in allIngs)
-        {
-            var existingStock = await _db.BranchInventories.FirstOrDefaultAsync(bi => bi.BranchId == branch.BranchId && bi.IngredientId == ing.IngredientId);
-            if (existingStock == null)
-            {
-                decimal stock = ing.IngredientCode switch
-                {
-                    "ING_ROBUSTA" => 4500,
-                    "ING_SUADAC" => 3000,
-                    "ING_DA_VIEN" => 15000,
-                    "ING_SUATUOI" => 6000,
-                    "ING_TRA_DEN" => 4000,
-                    "ING_TRA_OOLONG" => 3500,
-                    "ING_DAO_MIENG" => 2000,
-                    "ING_TRANCHAU" => 2500,
-                    "ING_KEMCHEESE" => 1200,
-                    _ => 2000
-                };
-
-                _db.BranchInventories.Add(new BranchInventory
-                {
-                    BranchId = branch.BranchId,
-                    IngredientId = ing.IngredientId,
-                    QuantityOnHand = stock,
-                    ReservedQuantity = 0,
-                    UpdatedAt = DateTime.UtcNow
-                });
-            }
-        }
-        await _db.SaveChangesAsync();
-
-        // 3. Đảm bảo cấu trúc CSDL cho Khách hàng & Khuyến mãi (S04)
-        try
-        {
-            await _db.Database.ExecuteSqlRawAsync(@"
-                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Customers')
-                BEGIN
-                    CREATE TABLE dbo.Customers (
-                        CustomerId INT IDENTITY(1,1) PRIMARY KEY,
-                        PhoneNumber VARCHAR(15) NOT NULL UNIQUE,
-                        FullName NVARCHAR(100) NOT NULL,
-                        MembershipTier VARCHAR(20) NOT NULL DEFAULT 'BRONZE',
-                        TotalPoints INT NOT NULL DEFAULT 0,
-                        LifetimePoints INT NOT NULL DEFAULT 0,
-                        TotalSpent DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
-                        IsActive BIT NOT NULL DEFAULT 1
-                    );
-                END
-
-                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Promotions')
-                BEGIN
-                    CREATE TABLE dbo.Promotions (
-                        PromotionId INT IDENTITY(1,1) PRIMARY KEY,
-                        PromotionCode VARCHAR(30) NOT NULL UNIQUE,
-                        PromotionName NVARCHAR(150) NOT NULL,
-                        DiscountType VARCHAR(20) NOT NULL DEFAULT 'PERCENT',
-                        DiscountValue DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        MaxDiscountAmount DECIMAL(18,2) NULL,
-                        MinOrderAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        StartDate DATETIME NOT NULL DEFAULT GETUTCDATE(),
-                        EndDate DATETIME NOT NULL DEFAULT DATEADD(month, 3, GETUTCDATE()),
-                        UsageLimit INT NULL,
-                        UsedCount INT NOT NULL DEFAULT 0,
-                        IsActive BIT NOT NULL DEFAULT 1
-                    );
-                END
-
-                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.Orders') AND name = 'CustomerId')
-                BEGIN
-                    ALTER TABLE dbo.Orders ADD CustomerId INT NULL;
-                END
-
-                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.Orders') AND name = 'PromotionCode')
-                BEGIN
-                    ALTER TABLE dbo.Orders ADD PromotionCode VARCHAR(30) NULL;
-                END
-
-                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.Orders') AND name = 'PointsEarned')
-                BEGIN
-                    ALTER TABLE dbo.Orders ADD PointsEarned INT NOT NULL DEFAULT 0;
-                END
-
-                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.Orders') AND name = 'PointsUsed')
-                BEGIN
-                    ALTER TABLE dbo.Orders ADD PointsUsed INT NOT NULL DEFAULT 0;
-                END
-
-                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.Orders') AND name = 'ShiftId')
-                BEGIN
-                    ALTER TABLE dbo.Orders ADD ShiftId BIGINT NULL;
-                END
-
-                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'WorkShifts')
-                BEGIN
-                    CREATE TABLE dbo.WorkShifts (
-                        ShiftId BIGINT IDENTITY(1,1) PRIMARY KEY,
-                        ShiftCode VARCHAR(30) NOT NULL UNIQUE,
-                        BranchId INT NOT NULL,
-                        CashierUserId INT NOT NULL,
-                        CashierName NVARCHAR(100) NOT NULL,
-                        ShiftName NVARCHAR(50) NOT NULL DEFAULT N'Ca Sáng',
-                        StartTime DATETIME NOT NULL DEFAULT GETUTCDATE(),
-                        EndTime DATETIME NULL,
-                        OpeningCash DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        CashSales DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        VietQrSales DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        TotalSales DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        TotalOrders INT NOT NULL DEFAULT 0,
-                        ExpectedClosingCash DECIMAL(18,2) NOT NULL DEFAULT 0,
-                        ActualClosingCash DECIMAL(18,2) NULL,
-                        DifferenceAmount DECIMAL(18,2) NULL,
-                        Status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
-                        Notes NVARCHAR(500) NULL
-                    );
-                END
-            ");
-
-            // Seed dữ liệu mẫu khách hàng nếu chưa có
-            if (!await _db.Customers.AnyAsync())
-            {
-                _db.Customers.AddRange(
-                    new Customer
-                    {
-                        PhoneNumber = "0901234567",
-                        FullName = "Nguyễn Văn An",
-                        MembershipTier = "BRONZE",
-                        TotalPoints = 45,
-                        LifetimePoints = 45,
-                        TotalSpent = 450000,
-                        CreatedAt = DateTime.UtcNow.AddMonths(-1)
-                    },
-                    new Customer
-                    {
-                        PhoneNumber = "0912345678",
-                        FullName = "Trần Thị Bích",
-                        MembershipTier = "SILVER",
-                        TotalPoints = 140,
-                        LifetimePoints = 140,
-                        TotalSpent = 1400000,
-                        CreatedAt = DateTime.UtcNow.AddMonths(-2)
-                    },
-                    new Customer
-                    {
-                        PhoneNumber = "0987654321",
-                        FullName = "Lê Hoàng Long",
-                        MembershipTier = "GOLD",
-                        TotalPoints = 380,
-                        LifetimePoints = 380,
-                        TotalSpent = 3800000,
-                        CreatedAt = DateTime.UtcNow.AddMonths(-3)
-                    },
-                    new Customer
-                    {
-                        PhoneNumber = "0977889900",
-                        FullName = "Phạm Minh Trí",
-                        MembershipTier = "DIAMOND",
-                        TotalPoints = 720,
-                        LifetimePoints = 720,
-                        TotalSpent = 7200000,
-                        CreatedAt = DateTime.UtcNow.AddMonths(-4)
-                    }
-                );
-                await _db.SaveChangesAsync();
-            }
-
-            // Seed dữ liệu mẫu Voucher / Khuyến mãi nếu chưa có
-            if (!await _db.Promotions.AnyAsync())
-            {
-                _db.Promotions.AddRange(
-                    new Promotion
-                    {
-                        PromotionCode = "CHAOBANMOI",
-                        PromotionName = "Chào Bạn Mới - Giảm 20%",
-                        DiscountType = "PERCENT",
-                        DiscountValue = 20,
-                        MaxDiscountAmount = 30000,
-                        MinOrderAmount = 0,
-                        StartDate = DateTime.UtcNow.AddDays(-1),
-                        EndDate = DateTime.UtcNow.AddMonths(2),
-                        UsageLimit = 500,
-                        UsedCount = 12
-                    },
-                    new Promotion
-                    {
-                        PromotionCode = "GIAM15K",
-                        PromotionName = "Ưu Đãi Giảm 15.000đ Cho Đơn Từ 50K",
-                        DiscountType = "FIXED_AMOUNT",
-                        DiscountValue = 15000,
-                        MinOrderAmount = 50000,
-                        StartDate = DateTime.UtcNow.AddDays(-1),
-                        EndDate = DateTime.UtcNow.AddMonths(2),
-                        UsageLimit = 300,
-                        UsedCount = 8
-                    },
-                    new Promotion
-                    {
-                        PromotionCode = "BUY1GET1",
-                        PromotionName = "Mua 1 Tặng 1 (Món Rẻ Nhất)",
-                        DiscountType = "BUY1_GET1",
-                        DiscountValue = 100,
-                        MinOrderAmount = 30000,
-                        StartDate = DateTime.UtcNow.AddDays(-1),
-                        EndDate = DateTime.UtcNow.AddMonths(2),
-                        UsageLimit = 200,
-                        UsedCount = 5
-                    },
-                    new Promotion
-                    {
-                        PromotionCode = "VIPCOFFEE",
-                        PromotionName = "Tri Ân Khách VIP - Giảm 25%",
-                        DiscountType = "PERCENT",
-                        DiscountValue = 25,
-                        MaxDiscountAmount = 50000,
-                        MinOrderAmount = 60000,
-                        StartDate = DateTime.UtcNow.AddDays(-1),
-                        EndDate = DateTime.UtcNow.AddMonths(3),
-                        UsageLimit = 100,
-                        UsedCount = 2
-                    }
-                );
-                await _db.SaveChangesAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Lỗi seed Customer/Promotion: {ex.Message}");
+            MessageBox.Show($"Lỗi kết nối máy chủ API: {ex.Message}", "Lỗi Tải Dữ Liệu", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -795,16 +472,7 @@ public partial class MainViewModel : ObservableObject
     public async Task FilterProductsAsync(ProductCategory? category)
     {
         SelectedCategory = category;
-        IQueryable<Product> query = _db.Products
-            .Include(p => p.Variants)
-            .Where(p => p.IsActive);
-
-        if (category != null && category.CategoryId > 0)
-        {
-            query = query.Where(p => p.CategoryId == category.CategoryId);
-        }
-
-        var list = await query.ToListAsync();
+        var list = await ProductApiClient.Instance.GetProductsAsync(category?.CategoryId, activeOnly: true);
         Products = new ObservableCollection<Product>(list);
     }
 
@@ -813,7 +481,7 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var toppings = await _db.Toppings.Where(t => t.IsActive).ToListAsync();
+            var toppings = await ProductApiClient.Instance.GetToppingsAsync(activeOnly: true);
             var vm = new CustomizeProductViewModel(product, toppings);
 
             var dialog = new CustomizeProductWindow(vm);
@@ -863,7 +531,7 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var toppings = await _db.Toppings.Where(t => t.IsActive).ToListAsync();
+            var toppings = await ProductApiClient.Instance.GetToppingsAsync(activeOnly: true);
             var vm = new CustomizeProductViewModel(item.Product, toppings, item);
 
             var dialog = new CustomizeProductWindow(vm);
@@ -1027,54 +695,51 @@ public partial class MainViewModel : ObservableObject
                 int branchId = CurrentSession.BranchId > 0 ? CurrentSession.BranchId : 1;
                 int cashierId = CurrentSession.UserId > 0 ? CurrentSession.UserId : 1;
 
-                var order = new Order
+                var req = new CreateOrderRequest
                 {
-                    OrderNumber = OrderNumber,
                     BranchId = branchId,
                     CashierUserId = cashierId,
+                    ShiftId = CurrentShift?.ShiftId,
                     CustomerId = SelectedCustomer?.CustomerId,
+                    CustomerPhone = SelectedCustomer?.PhoneNumber,
+                    CustomerPointsUsed = UseCustomerPoints ? PointsToUse : 0,
                     PromotionCode = SelectedPromotion?.PromotionCode,
-                    PointsUsed = PointsToUse,
                     OrderType = "TAKE_AWAY",
-                    OrderStatus = "PAID",
+                    PaymentMethod = checkoutVm.PaymentMethod,
+                    CustomerGivenAmount = checkoutVm.CustomerGivenAmount,
                     SubTotal = SubTotal,
                     DiscountAmount = DiscountAmount,
-                    TaxAmount = 0,
                     FinalAmount = FinalAmount,
-                    CreatedAt = DateTime.UtcNow
+                    Items = CartItems.Select(c => new OrderItemRequest
+                    {
+                        ProductId = c.Product.ProductId,
+                        VariantId = c.Variant.VariantId > 0 ? c.Variant.VariantId : 1,
+                        Quantity = c.Quantity,
+                        UnitPrice = c.UnitPrice,
+                        Size = c.Variant.Size ?? "M",
+                        Sugar = c.SugarLevel,
+                        Ice = c.IceLevel,
+                        Note = c.Note,
+                        OptionsSummary = c.OptionsSummary,
+                        Toppings = c.Toppings.Select(t => new OrderItemToppingRequest
+                        {
+                            ToppingId = t.Topping.ToppingId,
+                            Quantity = t.Quantity,
+                            UnitPrice = t.Topping.Price
+                        }).ToList()
+                    }).ToList()
                 };
 
-                foreach (var cart in CartItems)
+                var createdOrder = await OrderApiClient.Instance.CreateOrderAsync(req);
+                if (createdOrder == null)
                 {
-                    var orderItem = new OrderItem
-                    {
-                        VariantId = cart.Variant.VariantId > 0 ? cart.Variant.VariantId : 1,
-                        Quantity = cart.Quantity,
-                        UnitPrice = cart.UnitPrice,
-                        SubTotal = cart.LineTotal,
-                        SugarLevel = cart.SugarLevel,
-                        IceLevel = cart.IceLevel,
-                        Note = cart.Note,
-                        ItemStatus = "QUEUED"
-                    };
-
-                    foreach (var top in cart.Toppings)
-                    {
-                        orderItem.Toppings.Add(new OrderItemTopping
-                        {
-                            ToppingId = top.Topping.ToppingId,
-                            Quantity = top.Quantity,
-                            UnitPrice = top.Topping.Price
-                        });
-                    }
-
-                    order.Items.Add(orderItem);
+                    MessageBox.Show("Không thể tạo đơn hàng trên máy chủ API!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
                 }
 
-                // Gán ca làm việc và cập nhật doanh thu ca
+                // Cập nhật ca làm việc cục bộ
                 if (CurrentShift != null)
                 {
-                    order.ShiftId = CurrentShift.ShiftId;
                     if (checkoutVm.PaymentMethod == "CASH")
                     {
                         CurrentShift.CashSales += FinalAmount;
@@ -1086,107 +751,19 @@ public partial class MainViewModel : ObservableObject
                     CurrentShift.TotalSales += FinalAmount;
                     CurrentShift.TotalOrders += 1;
                     CurrentShift.ExpectedClosingCash = CurrentShift.OpeningCash + CurrentShift.CashSales;
-
-                    var dbShift = await _db.WorkShifts.FindAsync(CurrentShift.ShiftId);
-                    if (dbShift != null)
-                    {
-                        dbShift.CashSales = CurrentShift.CashSales;
-                        dbShift.VietQrSales = CurrentShift.VietQrSales;
-                        dbShift.TotalSales = CurrentShift.TotalSales;
-                        dbShift.TotalOrders = CurrentShift.TotalOrders;
-                        dbShift.ExpectedClosingCash = CurrentShift.ExpectedClosingCash;
-                    }
                 }
-
-                _db.Orders.Add(order);
-                await _db.SaveChangesAsync();
-
-                // Lưu giao dịch thanh toán
-                var payment = new Payment
-                {
-                    OrderId = order.OrderId,
-                    PaymentMethod = checkoutVm.PaymentMethod,
-                    Amount = FinalAmount,
-                    Status = "SUCCESS",
-                    TransactionCode = checkoutVm.PaymentMethod == "VIETQR" ? $"QR_{order.OrderNumber}" : null,
-                    CashierUserId = cashierId,
-                    PaidAt = DateTime.UtcNow
-                };
-                _db.Payments.Add(payment);
-
-                // Lưu biên nhận thanh toán (Order Receipt)
-                var receipt = new OrderReceipt
-                {
-                    ReceiptNumber = $"REC_{order.OrderNumber}",
-                    OrderId = order.OrderId,
-                    BranchId = branchId,
-                    CashierUserId = cashierId,
-                    TotalAmount = FinalAmount,
-                    AmountPaid = checkoutVm.CustomerGivenAmount,
-                    ChangeAmount = checkoutVm.ChangeAmount,
-                    IssuedAt = DateTime.UtcNow
-                };
-                _db.OrderReceipts.Add(receipt);
-
-                // Cập nhật điểm & nâng hạng khách hàng thành viên
-                string customerInfoStr = "";
-                if (SelectedCustomer != null)
-                {
-                    var dbCust = await _db.Customers.FindAsync(SelectedCustomer.CustomerId);
-                    if (dbCust != null)
-                    {
-                        if (UseCustomerPoints && PointsToUse > 0)
-                        {
-                            dbCust.TotalPoints = Math.Max(0, dbCust.TotalPoints - PointsToUse);
-                        }
-
-                        int earned = (int)(FinalAmount / 10000);
-                        dbCust.TotalPoints += earned;
-                        dbCust.LifetimePoints += earned;
-                        dbCust.TotalSpent += FinalAmount;
-                        order.PointsEarned = earned;
-
-                        // Tự động nâng hạng thành viên
-                        string oldTier = dbCust.MembershipTier;
-                        if (dbCust.LifetimePoints >= 600) dbCust.MembershipTier = "DIAMOND";
-                        else if (dbCust.LifetimePoints >= 300) dbCust.MembershipTier = "GOLD";
-                        else if (dbCust.LifetimePoints >= 100) dbCust.MembershipTier = "SILVER";
-
-                        customerInfoStr = $"\n\n👤 KHÁCH HÀNG THÀNH VIÊN:\n" +
-                                          $"• Khách hàng: {dbCust.FullName} ({dbCust.PhoneNumber})\n" +
-                                          $"• Hạng: {dbCust.TierBadge}" +
-                                          (oldTier != dbCust.MembershipTier ? " 🌟 (Chúc mừng thăng hạng!)" : "") +
-                                          (PointsToUse > 0 ? $"\n• Điểm đã đổi: -{PointsToUse} điểm (-{PointsDiscountAmount:N0} đ)" : "") +
-                                          $"\n• Điểm tích lũy mới: +{earned} điểm (Số dư: {dbCust.TotalPoints} điểm)";
-                    }
-                }
-
-                // Cập nhật lượt sử dụng Voucher
-                string promoInfoStr = "";
-                if (SelectedPromotion != null)
-                {
-                    var dbPromo = await _db.Promotions.FindAsync(SelectedPromotion.PromotionId);
-                    if (dbPromo != null)
-                    {
-                        dbPromo.UsedCount++;
-                    }
-                    promoInfoStr = $"\n\n🎟️ ƯU ĐÃI: {SelectedPromotion.PromotionName} (-{VoucherDiscountAmount:N0} đ)";
-                }
-
-                // ==================== TỰ ĐỘNG TRỪ KHO NGUYÊN LIỆU THEO CÔNG THỨC ====================
-                await DeductInventoryForOrderAsync(order, branchId);
-
-                await _db.SaveChangesAsync();
 
                 string methodStr = checkoutVm.PaymentMethod == "CASH" ? "Tiền mặt" : "Chuyển khoản VietQR";
                 string changeStr = checkoutVm.PaymentMethod == "CASH" ? $"\nTiền thối lại: {checkoutVm.ChangeAmount:N0} đ" : "";
+                string promoInfoStr = SelectedPromotion != null ? $"\n\n🎟️ ƯU ĐÃI: {SelectedPromotion.PromotionName} (-{VoucherDiscountAmount:N0} đ)" : "";
+                string customerInfoStr = SelectedCustomer != null ? $"\n\n👤 KHÁCH HÀNG: {SelectedCustomer.FullName} ({SelectedCustomer.PhoneNumber})" + (createdOrder.PointsEarned > 0 ? $"\n• Điểm tích lũy mới: +{createdOrder.PointsEarned} điểm" : "") : "";
 
                 MessageBox.Show(
                     $"🎉 THANH TOÁN THÀNH CÔNG!\n\n" +
-                    $"• Mã đơn: #{order.OrderNumber}\n" +
+                    $"• Mã đơn: #{createdOrder.OrderNumber}\n" +
                     $"• Tổng thanh toán: {FinalAmount:N0} đ\n" +
                     $"• Hình thức: {methodStr}{changeStr}\n" +
-                    $"• Biên nhận: {receipt.ReceiptNumber}" +
+                    $"• Biên nhận: REC_{createdOrder.OrderNumber}" +
                     promoInfoStr + customerInfoStr + "\n\n" +
                     $"⚡ Đã tự động trừ nguyên liệu trong kho và đẩy sang Quầy Barista!",
                     "Hoàn tất đơn hàng", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -1221,7 +798,7 @@ public partial class MainViewModel : ObservableObject
                 return;
             }
 
-            var cust = await _db.Customers.FirstOrDefaultAsync(c => c.PhoneNumber == phone);
+            var cust = await CustomerApiClient.Instance.GetCustomerByPhoneAsync(phone);
             if (cust != null)
             {
                 SelectedCustomer = cust;
@@ -1238,12 +815,19 @@ public partial class MainViewModel : ObservableObject
                     var dlg = new AddCustomerWindow(phone);
                     if (dlg.ShowDialog() == true && dlg.CreatedCustomer != null)
                     {
-                        _db.Customers.Add(dlg.CreatedCustomer);
-                        await _db.SaveChangesAsync();
-                        SelectedCustomer = dlg.CreatedCustomer;
-                        UseCustomerPoints = false;
-                        CustomerSearchPhone = "";
-                        UpdateTotals();
+                        var created = await CustomerApiClient.Instance.CreateCustomerAsync(new CustomerCreateRequest
+                        {
+                            PhoneNumber = dlg.CreatedCustomer.PhoneNumber,
+                            FullName = dlg.CreatedCustomer.FullName
+                        });
+
+                        if (created != null)
+                        {
+                            SelectedCustomer = created;
+                            UseCustomerPoints = false;
+                            CustomerSearchPhone = "";
+                            UpdateTotals();
+                        }
                     }
                 }
             }
@@ -1277,7 +861,7 @@ public partial class MainViewModel : ObservableObject
                 return;
             }
 
-            var promo = await _db.Promotions.FirstOrDefaultAsync(p => p.PromotionCode == code);
+            var promo = await PromotionApiClient.Instance.GetPromotionByCodeAsync(code);
             if (promo == null)
             {
                 MessageBox.Show($"Mã khuyến mãi '{code}' không tồn tại trong hệ thống!", "Không hợp lệ", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -1325,11 +909,7 @@ public partial class MainViewModel : ObservableObject
                 return;
             }
 
-            var now = DateTime.UtcNow;
-            var activePromos = await _db.Promotions
-                .Where(p => p.IsActive && p.StartDate <= now && p.EndDate >= now && (!p.UsageLimit.HasValue || p.UsedCount < p.UsageLimit.Value))
-                .OrderBy(p => p.MinOrderAmount)
-                .ToListAsync();
+            var activePromos = await PromotionApiClient.Instance.GetPromotionsAsync(activeOnly: true);
 
             if (activePromos.Count == 0)
             {
@@ -1363,119 +943,6 @@ public partial class MainViewModel : ObservableObject
         SelectedPromotion = null;
         VoucherDiscountAmount = 0;
         UpdateTotals();
-    }
-
-    // HÀM TRỪ KHO THEO ĐỊNH LƯỢNG MÓN VÀ TOPPING
-    private async Task DeductInventoryForOrderAsync(Order order, int branchId)
-    {
-        try
-        {
-            foreach (var item in order.Items)
-            {
-                var variant = await _db.ProductVariants.Include(v => v.Product).FirstOrDefaultAsync(v => v.VariantId == item.VariantId);
-                if (variant == null) continue;
-
-                // Xác định lượng tiêu hao nguyên liệu dựa theo món và size
-                var deductions = new List<(string IngCode, decimal Amount)>();
-
-                // 1. Ưu tiên kiểm tra công thức BOM đã cấu hình trong CSDL (Recipes -> RecipeVersions -> RecipeDetails)
-                var recipeVersion = await _db.RecipeVersions
-                    .Include(rv => rv.Details)
-                        .ThenInclude(d => d.Ingredient)
-                    .Where(rv => rv.Recipe!.VariantId == variant.VariantId && rv.IsCurrent)
-                    .FirstOrDefaultAsync();
-
-                if (recipeVersion != null && recipeVersion.Details.Count > 0)
-                {
-                    foreach (var detail in recipeVersion.Details)
-                    {
-                        if (detail.Ingredient != null)
-                        {
-                            deductions.Add((detail.Ingredient.IngredientCode, detail.Quantity));
-                        }
-                    }
-                }
-                else
-                {
-                    // Fallback theo định lượng mặc định
-                    string pCode = variant.Product?.ProductCode ?? "";
-                    bool isSizeL = variant.Size == "L";
-
-                    if (pCode.Contains("CF_SUA_DA"))
-                    {
-                        deductions.Add(("ING_ROBUSTA", isSizeL ? 35 : 25));
-                        deductions.Add(("ING_SUADAC", isSizeL ? 50 : 40));
-                        deductions.Add(("ING_DA_VIEN", isSizeL ? 200 : 150));
-                    }
-                    else if (pCode.Contains("CF_BAC_XIU"))
-                    {
-                        deductions.Add(("ING_ROBUSTA", isSizeL ? 20 : 15));
-                        deductions.Add(("ING_SUADAC", isSizeL ? 50 : 40));
-                        deductions.Add(("ING_SUATUOI", isSizeL ? 130 : 100));
-                        deductions.Add(("ING_DA_VIEN", isSizeL ? 200 : 150));
-                    }
-                    else if (pCode.Contains("TEA_DAO_CAM_SA"))
-                    {
-                        deductions.Add(("ING_TRA_DEN", isSizeL ? 200 : 150));
-                        deductions.Add(("ING_DAO_MIENG", isSizeL ? 60 : 40));
-                        deductions.Add(("ING_DA_VIEN", isSizeL ? 200 : 150));
-                    }
-                    else if (pCode.Contains("TEA_SUA_OOLONG"))
-                    {
-                        deductions.Add(("ING_TRA_OOLONG", isSizeL ? 200 : 150));
-                        deductions.Add(("ING_SUADAC", isSizeL ? 50 : 40));
-                        deductions.Add(("ING_DA_VIEN", isSizeL ? 200 : 150));
-                    }
-                }
-
-                // Tiêu hao từ Topping đi kèm
-                foreach (var top in item.Toppings)
-                {
-                    var topping = await _db.Toppings.FindAsync(top.ToppingId);
-                    if (topping != null)
-                    {
-                        if (topping.ToppingCode.Contains("TRANCHAU"))
-                            deductions.Add(("ING_TRANCHAU", 30 * top.Quantity));
-                        else if (topping.ToppingCode.Contains("KEMCHEESE"))
-                            deductions.Add(("ING_KEMCHEESE", 40 * top.Quantity));
-                        else if (topping.ToppingCode.Contains("SUA"))
-                            deductions.Add(("ING_SUADAC", 20 * top.Quantity));
-                    }
-                }
-
-                // Trừ vào bảng BranchInventory và lưu Thẻ kho
-                foreach (var d in deductions)
-                {
-                    decimal totalDeduct = d.Amount * item.Quantity;
-                    var ing = await _db.Ingredients.FirstOrDefaultAsync(i => i.IngredientCode == d.IngCode);
-                    if (ing == null) continue;
-
-                    var stock = await _db.BranchInventories.FirstOrDefaultAsync(bi => bi.BranchId == branchId && bi.IngredientId == ing.IngredientId);
-                    if (stock != null)
-                    {
-                        stock.QuantityOnHand = Math.Max(0, stock.QuantityOnHand - totalDeduct);
-                        stock.UpdatedAt = DateTime.UtcNow;
-
-                        _db.InventoryTransactions.Add(new InventoryTransaction
-                        {
-                            BranchId = branchId,
-                            IngredientId = ing.IngredientId,
-                            TransactionType = "SALE_CONSUMPTION",
-                            QuantityChange = -totalDeduct,
-                            BalanceAfter = stock.QuantityOnHand,
-                            ReferenceType = "ORDER",
-                            ReferenceId = order.OrderNumber,
-                            Note = $"Xuất bán {item.Quantity}x {variant.Product?.ProductName} ({variant.Size})",
-                            CreatedAt = DateTime.UtcNow
-                        });
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Lỗi trừ kho: {ex.Message}");
-        }
     }
 
     private void UpdateTotals()
@@ -1557,45 +1024,32 @@ public partial class MainViewModel : ObservableObject
         {
             int branchId = CurrentSession.BranchId > 0 ? CurrentSession.BranchId : 1;
 
-            var orders = await _db.Orders
-                .Include(o => o.Items)
-                    .ThenInclude(i => i.Variant)
-                        .ThenInclude(v => v!.Product)
-                .Include(o => o.Items)
-                    .ThenInclude(i => i.Toppings)
-                        .ThenInclude(t => t.Topping)
-                .Where(o => o.BranchId == branchId && (o.OrderStatus == "PAID" || o.OrderStatus == "PREPARING" || o.OrderStatus == "READY"))
-                .OrderBy(o => o.CreatedAt)
-                .ToListAsync();
+            var ticketsDto = await KdsApiClient.Instance.GetActiveTicketsAsync(branchId);
 
             var tickets = new List<KdsTicketViewModel>();
-            foreach (var ord in orders)
+            foreach (var ord in ticketsDto)
             {
                 var ticket = new KdsTicketViewModel
                 {
-                    Order = ord,
-                    OrderStatus = ord.OrderStatus
+                    OrderId = ord.OrderId,
+                    OrderNumber = ord.OrderNumber,
+                    OrderType = ord.OrderType,
+                    OrderStatus = ord.OrderStatus,
+                    CreatedAt = ord.CreatedAt.ToLocalTime()
                 };
 
                 foreach (var itm in ord.Items)
                 {
-                    var topSummary = itm.Toppings.Count > 0
-                        ? "+ " + string.Join(", ", itm.Toppings.Select(t => t.Quantity > 1 ? $"{t.Topping?.ToppingName} (x{t.Quantity})" : t.Topping?.ToppingName))
-                        : "";
-
-                    var optParts = new List<string> { $"Size {itm.Variant?.Size ?? "M"}", $"{itm.SugarLevel} đường", $"{itm.IceLevel} đá" };
-                    if (!string.IsNullOrEmpty(topSummary)) optParts.Add(topSummary);
-
                     ticket.Items.Add(new KdsItemViewModel
                     {
                         OrderItemId = itm.OrderItemId,
                         OrderId = ord.OrderId,
-                        ProductName = itm.Variant?.Product?.ProductName ?? "Món nước",
-                        Size = itm.Variant?.Size ?? "M",
+                        ProductName = itm.ProductName,
+                        Size = itm.Size,
                         Quantity = itm.Quantity,
-                        OptionsSummary = string.Join(" | ", optParts),
-                        Note = itm.Note ?? "",
-                        Status = itm.ItemStatus
+                        OptionsSummary = itm.OptionsSummary,
+                        Note = itm.Note,
+                        Status = itm.Status
                     });
                 }
 
@@ -1620,21 +1074,11 @@ public partial class MainViewModel : ObservableObject
         try
         {
             item.Status = "PREPARING";
-
-            var dbItem = await _db.OrderItems.FindAsync(item.OrderItemId);
-            if (dbItem != null)
+            bool success = await KdsApiClient.Instance.UpdateItemStatusAsync(item.OrderItemId, "PREPARING");
+            if (success)
             {
-                dbItem.ItemStatus = "PREPARING";
+                await RefreshKdsAsync();
             }
-
-            var dbOrder = await _db.Orders.FindAsync(item.OrderId);
-            if (dbOrder != null && dbOrder.OrderStatus == "PAID")
-            {
-                dbOrder.OrderStatus = "PREPARING";
-            }
-
-            await _db.SaveChangesAsync();
-            await RefreshKdsAsync();
         }
         catch (Exception ex)
         {
@@ -1648,24 +1092,11 @@ public partial class MainViewModel : ObservableObject
         try
         {
             item.Status = "READY";
-
-            var dbItem = await _db.OrderItems.FindAsync(item.OrderItemId);
-            if (dbItem != null)
+            bool success = await KdsApiClient.Instance.UpdateItemStatusAsync(item.OrderItemId, "READY");
+            if (success)
             {
-                dbItem.ItemStatus = "READY";
+                await RefreshKdsAsync();
             }
-
-            var allItemsInOrder = await _db.OrderItems.Where(i => i.OrderId == item.OrderId).ToListAsync();
-            bool allReady = allItemsInOrder.All(i => i.OrderItemId == item.OrderItemId || i.ItemStatus == "READY" || i.ItemStatus == "SERVED");
-
-            var dbOrder = await _db.Orders.FindAsync(item.OrderId);
-            if (dbOrder != null && allReady)
-            {
-                dbOrder.OrderStatus = "READY";
-            }
-
-            await _db.SaveChangesAsync();
-            await RefreshKdsAsync();
         }
         catch (Exception ex)
         {
@@ -1678,24 +1109,14 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var dbOrder = await _db.Orders.FindAsync(ticket.OrderId);
-            if (dbOrder != null)
+            bool success = await KdsApiClient.Instance.CompleteOrderAsync(ticket.OrderId);
+            if (success)
             {
-                dbOrder.OrderStatus = "COMPLETED";
+                MessageBox.Show($"🎉 Đã bàn giao đơn hàng #{ticket.OrderNumber} cho khách thành công!", 
+                    "Bàn Giao Hoàn Tất", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                await RefreshKdsAsync();
             }
-
-            var dbItems = await _db.OrderItems.Where(i => i.OrderId == ticket.OrderId).ToListAsync();
-            foreach (var itm in dbItems)
-            {
-                itm.ItemStatus = "SERVED";
-            }
-
-            await _db.SaveChangesAsync();
-
-            MessageBox.Show($"🎉 Đã bàn giao đơn hàng #{ticket.OrderNumber} cho khách thành công!", 
-                "Bàn Giao Hoàn Tất", MessageBoxButton.OK, MessageBoxImage.Information);
-
-            await RefreshKdsAsync();
         }
         catch (Exception ex)
         {
@@ -1711,35 +1132,22 @@ public partial class MainViewModel : ObservableObject
         {
             int branchId = CurrentSession.BranchId > 0 ? CurrentSession.BranchId : 1;
 
-            // Tải danh sách tồn kho chi nhánh kèm thông tin nguyên liệu
-            var stocks = await _db.BranchInventories
-                .Include(bi => bi.Ingredient)
-                .Where(bi => bi.BranchId == branchId)
-                .OrderBy(bi => bi.Ingredient!.IngredientName)
-                .ToListAsync();
-
+            var stocks = await InventoryApiClient.Instance.GetBranchInventoryAsync(branchId);
             var items = stocks.Select(s => new InventoryItemViewModel
             {
                 BranchInventoryId = s.BranchInventoryId,
                 IngredientId = s.IngredientId,
-                IngredientCode = s.Ingredient?.IngredientCode ?? "",
-                IngredientName = s.Ingredient?.IngredientName ?? "Nguyên liệu",
-                BaseUom = s.Ingredient?.BaseUom ?? "g",
+                IngredientCode = s.IngredientCode,
+                IngredientName = s.IngredientName,
+                BaseUom = s.BaseUom,
                 QuantityOnHand = s.QuantityOnHand,
-                MinStockAlert = s.Ingredient?.MinStockAlert ?? 0
+                MinStockAlert = s.MinStockAlert
             }).ToList();
 
             InventoryItems = new ObservableCollection<InventoryItemViewModel>(items);
             LowStockCount = items.Count(i => i.IsLowStock);
 
-            // Tải đến 500 giao dịch Thẻ kho gần nhất
-            var trans = await _db.InventoryTransactions
-                .Include(t => t.Ingredient)
-                .Where(t => t.BranchId == branchId)
-                .OrderByDescending(t => t.CreatedAt)
-                .Take(500)
-                .ToListAsync();
-
+            var trans = await InventoryApiClient.Instance.GetTransactionsAsync(branchId, 500);
             _allInventoryTransactions = trans.Select(t => new InventoryTransactionItemViewModel
             {
                 TransactionId = t.TransactionId,
@@ -1747,10 +1155,10 @@ public partial class MainViewModel : ObservableObject
                 IngredientId = t.IngredientId,
                 TransactionType = t.TransactionType,
                 CreatedAt = t.CreatedAt.ToLocalTime(),
-                IngredientName = t.Ingredient?.IngredientName ?? "",
+                IngredientName = t.IngredientName,
                 QuantityChange = t.QuantityChange,
                 BalanceAfter = t.BalanceAfter,
-                BaseUom = t.Ingredient?.BaseUom ?? "g",
+                BaseUom = t.BaseUom,
                 ReferenceId = t.ReferenceId,
                 Note = t.Note ?? ""
             }).ToList();
@@ -1821,36 +1229,18 @@ public partial class MainViewModel : ObservableObject
 
             if (confirm != MessageBoxResult.Yes) return;
 
-            var stock = await _db.BranchInventories
-                .FirstOrDefaultAsync(bi => bi.BranchId == item.BranchId && bi.IngredientId == item.IngredientId);
-
-            if (stock != null)
+            bool success = await InventoryApiClient.Instance.CancelReceiptAsync(item.TransactionId);
+            if (success)
             {
-                stock.QuantityOnHand -= item.QuantityChange;
-                if (stock.QuantityOnHand < 0) stock.QuantityOnHand = 0;
-                stock.UpdatedAt = DateTime.UtcNow;
+                MessageBox.Show($"✅ Đã hủy phiếu #{item.ReferenceId} và thu hồi -{item.QuantityChange:N1} {item.BaseUom} {item.IngredientName} thành công!",
+                    "Đã Hủy Phiếu Nhập", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                await RefreshInventoryAsync();
             }
-
-            // Ghi nhận Thẻ kho cho giao dịch HỦY PHIẾU NHẬP
-            _db.InventoryTransactions.Add(new InventoryTransaction
+            else
             {
-                BranchId = item.BranchId,
-                IngredientId = item.IngredientId,
-                TransactionType = "RECEIPT_CANCELLED",
-                QuantityChange = -item.QuantityChange,
-                BalanceAfter = stock?.QuantityOnHand ?? 0,
-                ReferenceType = "CANCEL_RECEIPT",
-                ReferenceId = $"HUY_{item.ReferenceId}",
-                Note = $"[HỦY PHIẾU #{item.ReferenceId}] Thu hồi do nhập sai: -{item.QuantityChange:N1} {item.BaseUom}",
-                CreatedAt = DateTime.UtcNow
-            });
-
-            await _db.SaveChangesAsync();
-
-            MessageBox.Show($"✅ Đã hủy phiếu #{item.ReferenceId} và thu hồi -{item.QuantityChange:N1} {item.BaseUom} {item.IngredientName} thành công!",
-                "Đã Hủy Phiếu Nhập", MessageBoxButton.OK, MessageBoxImage.Information);
-
-            await RefreshInventoryAsync();
+                MessageBox.Show("Không thể hủy phiếu nhập kho này trên máy chủ API!", "Lỗi Hủy Phiếu", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
         catch (Exception ex)
         {
@@ -1864,7 +1254,7 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var allIngredients = await _db.Ingredients.Where(i => i.IsActive).OrderBy(i => i.IngredientName).ToListAsync();
+            var allIngredients = await InventoryApiClient.Instance.GetIngredientsAsync(activeOnly: true);
             var dialog = new ImportStockWindow(allIngredients);
             if (Application.Current?.MainWindow != null)
             {
@@ -1874,47 +1264,22 @@ public partial class MainViewModel : ObservableObject
             if (dialog.ShowDialog() == true && dialog.SelectedIngredient != null)
             {
                 int branchId = CurrentSession.BranchId > 0 ? CurrentSession.BranchId : 1;
-                var stock = await _db.BranchInventories
-                    .FirstOrDefaultAsync(bi => bi.BranchId == branchId && bi.IngredientId == dialog.SelectedIngredient.IngredientId);
-
-                if (stock == null)
-                {
-                    stock = new BranchInventory
-                    {
-                        BranchId = branchId,
-                        IngredientId = dialog.SelectedIngredient.IngredientId,
-                        QuantityOnHand = dialog.ImportQuantity,
-                        ReservedQuantity = 0,
-                        UpdatedAt = DateTime.UtcNow
-                    };
-                    _db.BranchInventories.Add(stock);
-                }
-                else
-                {
-                    stock.QuantityOnHand += dialog.ImportQuantity;
-                    stock.UpdatedAt = DateTime.UtcNow;
-                }
-
-                // Ghi nhận Thẻ kho (GOODS_RECEIPT)
-                _db.InventoryTransactions.Add(new InventoryTransaction
+                var req = new ImportStockRequest
                 {
                     BranchId = branchId,
                     IngredientId = dialog.SelectedIngredient.IngredientId,
-                    TransactionType = "GOODS_RECEIPT",
-                    QuantityChange = dialog.ImportQuantity,
-                    BalanceAfter = stock.QuantityOnHand,
-                    ReferenceType = "GOODS_RECEIPT",
-                    ReferenceId = $"PN{DateTime.Now:yyMMddHHmm}",
-                    Note = dialog.Note,
-                    CreatedAt = DateTime.UtcNow
-                });
+                    Quantity = dialog.ImportQuantity,
+                    Note = dialog.Note
+                };
 
-                await _db.SaveChangesAsync();
+                var updated = await InventoryApiClient.Instance.ImportStockAsync(req);
+                if (updated != null)
+                {
+                    MessageBox.Show($"🎉 Đã nhập kho thành công +{dialog.ImportQuantity:N0} {dialog.SelectedIngredient.BaseUom} {dialog.SelectedIngredient.IngredientName}!", 
+                        "Nhập Kho Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                MessageBox.Show($"🎉 Đã nhập kho thành công +{dialog.ImportQuantity:N0} {dialog.SelectedIngredient.BaseUom} {dialog.SelectedIngredient.IngredientName}!", 
-                    "Nhập Kho Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
-
-                await RefreshInventoryAsync();
+                    await RefreshInventoryAsync();
+                }
             }
         }
         catch (Exception ex)
@@ -1937,51 +1302,26 @@ public partial class MainViewModel : ObservableObject
 
             if (dlg.ShowDialog() == true && dlg.IngredientToSave != null)
             {
-                var newIng = dlg.IngredientToSave;
-                newIng.MinStockAlert = dlg.MinStockAlert;
-                _db.Ingredients.Add(newIng);
-                await _db.SaveChangesAsync();
-
-                // Tạo BranchInventory cho các chi nhánh
-                var branches = await _db.Branches.ToListAsync();
                 int currentBranchId = CurrentSession.BranchId > 0 ? CurrentSession.BranchId : 1;
-
-                foreach (var b in branches)
+                var req = new IngredientCreateRequest
                 {
-                    decimal initQty = (b.BranchId == currentBranchId) ? dlg.InitialStock : 0;
-                    var branchStock = new BranchInventory
-                    {
-                        BranchId = b.BranchId,
-                        IngredientId = newIng.IngredientId,
-                        QuantityOnHand = initQty,
-                        ReservedQuantity = 0,
-                        UpdatedAt = DateTime.UtcNow
-                    };
-                    _db.BranchInventories.Add(branchStock);
+                    IngredientCode = dlg.IngredientToSave.IngredientCode,
+                    IngredientName = dlg.IngredientToSave.IngredientName,
+                    BaseUom = dlg.IngredientToSave.BaseUom,
+                    MinStockAlert = dlg.MinStockAlert,
+                    InitialStock = dlg.InitialStock,
+                    CurrentBranchId = currentBranchId,
+                    CreatorName = CurrentCashier
+                };
 
-                    if (initQty > 0)
-                    {
-                        _db.InventoryTransactions.Add(new InventoryTransaction
-                        {
-                            BranchId = b.BranchId,
-                            IngredientId = newIng.IngredientId,
-                            TransactionType = "INITIAL_STOCK",
-                            QuantityChange = initQty,
-                            BalanceAfter = initQty,
-                            ReferenceType = "INITIAL",
-                            ReferenceId = $"INIT_{newIng.IngredientCode}",
-                            Note = $"Khởi tạo tồn kho ban đầu khi tạo nguyên liệu mới ({CurrentCashier})",
-                            CreatedAt = DateTime.UtcNow
-                        });
-                    }
+                var created = await InventoryApiClient.Instance.CreateIngredientAsync(req);
+                if (created != null)
+                {
+                    MessageBox.Show($"🎉 Đã thêm thành công nguyên liệu '{created.IngredientName}' vào hệ thống kho!",
+                        "Thêm Nguyên Liệu Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    await RefreshInventoryAsync();
                 }
-
-                await _db.SaveChangesAsync();
-
-                MessageBox.Show($"🎉 Đã thêm thành công nguyên liệu '{newIng.IngredientName}' vào hệ thống kho!",
-                    "Thêm Nguyên Liệu Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
-
-                await RefreshInventoryAsync();
             }
         }
         catch (Exception ex)
@@ -1997,8 +1337,14 @@ public partial class MainViewModel : ObservableObject
         if (item == null) return;
         try
         {
-            var ing = await _db.Ingredients.FindAsync(item.IngredientId);
-            if (ing == null) return;
+            var ing = new Ingredient
+            {
+                IngredientId = item.IngredientId,
+                IngredientCode = item.IngredientCode,
+                IngredientName = item.IngredientName,
+                BaseUom = item.BaseUom,
+                MinStockAlert = item.MinStockAlert
+            };
 
             var dlg = new IngredientEditWindow(ing, item.MinStockAlert);
             if (Application.Current?.MainWindow != null)
@@ -2006,15 +1352,23 @@ public partial class MainViewModel : ObservableObject
                 dlg.Owner = Application.Current.MainWindow;
             }
 
-            if (dlg.ShowDialog() == true)
+            if (dlg.ShowDialog() == true && dlg.IngredientToSave != null)
             {
-                ing.MinStockAlert = dlg.MinStockAlert;
-                await _db.SaveChangesAsync();
+                var req = new IngredientUpdateRequest
+                {
+                    IngredientName = dlg.IngredientToSave.IngredientName,
+                    BaseUom = dlg.IngredientToSave.BaseUom,
+                    MinStockAlert = dlg.MinStockAlert
+                };
 
-                MessageBox.Show($"🎉 Đã cập nhật thành công nguyên liệu '{ing.IngredientName}'!",
-                    "Cập Nhật Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+                var updated = await InventoryApiClient.Instance.UpdateIngredientAsync(item.IngredientId, req);
+                if (updated != null)
+                {
+                    MessageBox.Show($"🎉 Đã cập nhật thành công nguyên liệu '{updated.IngredientName}'!",
+                        "Cập Nhật Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                await RefreshInventoryAsync();
+                    await RefreshInventoryAsync();
+                }
             }
         }
         catch (Exception ex)
@@ -2039,46 +1393,32 @@ public partial class MainViewModel : ObservableObject
             if (dlg.ShowDialog() == true)
             {
                 int branchId = CurrentSession.BranchId > 0 ? CurrentSession.BranchId : 1;
-                var stock = await _db.BranchInventories
-                    .FirstOrDefaultAsync(bi => bi.BranchId == branchId && bi.IngredientId == item.IngredientId);
-
-                if (stock == null) return;
-
-                decimal oldQty = stock.QuantityOnHand;
+                decimal oldQty = item.QuantityOnHand;
                 decimal newQty = dlg.NewQuantity;
                 decimal diff = newQty - oldQty;
 
-                stock.QuantityOnHand = newQty;
-                stock.UpdatedAt = DateTime.UtcNow;
-
-                // Lưu vết lịch sử thẻ kho (Audit Log)
-                string auditRef = $"KK{DateTime.Now:yyMMddHHmm}";
-                string noteDetail = string.IsNullOrWhiteSpace(dlg.Note) ? "" : $" ({dlg.Note})";
-
-                _db.InventoryTransactions.Add(new InventoryTransaction
+                var req = new AdjustStockRequest
                 {
                     BranchId = branchId,
                     IngredientId = item.IngredientId,
-                    TransactionType = "STOCK_ADJUSTMENT",
-                    QuantityChange = diff,
-                    BalanceAfter = newQty,
-                    ReferenceType = "ADJUSTMENT",
-                    ReferenceId = auditRef,
-                    Note = $"[Kiểm kê] {dlg.Reason}{noteDetail} | Cũ: {oldQty:N1}{item.BaseUom} -> Mới: {newQty:N1}{item.BaseUom} | Bởi: {CurrentCashier}",
-                    CreatedAt = DateTime.UtcNow
-                });
+                    NewQuantity = newQty,
+                    Reason = dlg.Reason,
+                    Note = dlg.Note,
+                    PerformedBy = CurrentCashier
+                };
 
-                await _db.SaveChangesAsync();
+                var updated = await InventoryApiClient.Instance.AdjustStockAsync(req);
+                if (updated != null)
+                {
+                    MessageBox.Show($"🎉 Đã điều chỉnh kiểm kê tồn kho cho '{item.IngredientName}' thành công!\n\n" +
+                                    $"• Số lượng cũ: {oldQty:N1} {item.BaseUom}\n" +
+                                    $"• Số lượng mới: {newQty:N1} {item.BaseUom}\n" +
+                                    $"• Chênh lệch: {(diff >= 0 ? "+" : "")}{diff:N1} {item.BaseUom}\n\n" +
+                                    $"⚡ Lịch sử đã được ghi nhận vào thẻ kho.",
+                                    "Điều Chỉnh Tồn Kho Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                MessageBox.Show($"🎉 Đã điều chỉnh kiểm kê tồn kho cho '{item.IngredientName}' thành công!\n\n" +
-                                $"• Số lượng cũ: {oldQty:N1} {item.BaseUom}\n" +
-                                $"• Số lượng mới: {newQty:N1} {item.BaseUom}\n" +
-                                $"• Chênh lệch: {(diff >= 0 ? "+" : "")}{diff:N1} {item.BaseUom}\n" +
-                                $"• Mã phiếu kiểm kê: #{auditRef}\n\n" +
-                                $"⚡ Lịch sử đã được ghi nhận vào thẻ kho.",
-                                "Điều Chỉnh Tồn Kho Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
-
-                await RefreshInventoryAsync();
+                    await RefreshInventoryAsync();
+                }
             }
         }
         catch (Exception ex)
@@ -2115,117 +1455,47 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var query = _db.Orders
-                .Include(o => o.Items)
-                    .ThenInclude(i => i.Variant)
-                        .ThenInclude(v => v!.Product)
-                .Include(o => o.Payments)
-                .Include(o => o.Branch)
-                .Where(o => o.OrderStatus == "PAID" || o.OrderStatus == "PREPARING" || o.OrderStatus == "READY" || o.OrderStatus == "SERVED");
-
-            // 1. Lọc theo Chi nhánh
-            if (ReportBranchFilter == "CURRENT" && CurrentSession.BranchId > 0)
+            int? branchId = (ReportBranchFilter == "CURRENT" && CurrentSession.BranchId > 0) ? CurrentSession.BranchId : null;
+            var report = await ReportApiClient.Instance.GetDashboardReportAsync(branchId, ReportDateFilter);
+            if (report != null)
             {
-                query = query.Where(o => o.BranchId == CurrentSession.BranchId);
-            }
+                ReportTotalOrders = report.TotalOrders;
+                ReportTotalRevenue = report.TotalRevenue;
+                ReportTotalCups = report.TotalCups;
+                ReportAverageOrderValue = report.AverageOrderValue;
 
-            // 2. Lọc theo Ngày
-            var now = DateTime.UtcNow;
-            if (ReportDateFilter == "TODAY")
-            {
-                var todayStart = DateTime.UtcNow.Date;
-                query = query.Where(o => o.CreatedAt >= todayStart);
-            }
-            else if (ReportDateFilter == "WEEK")
-            {
-                var weekStart = DateTime.UtcNow.Date.AddDays(-7);
-                query = query.Where(o => o.CreatedAt >= weekStart);
-            }
-            else if (ReportDateFilter == "MONTH")
-            {
-                var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-                query = query.Where(o => o.CreatedAt >= monthStart);
-            }
+                ReportCashRevenue = report.CashRevenue;
+                ReportCashCount = report.CashCount;
+                ReportCashPercent = report.CashPercent;
 
-            var orders = await query.OrderByDescending(o => o.CreatedAt).ToListAsync();
+                ReportQrRevenue = report.QrRevenue;
+                ReportQrCount = report.QrCount;
+                ReportQrPercent = report.QrPercent;
 
-            // 3. Tính toán các chỉ số KPI
-            ReportTotalOrders = orders.Count;
-            ReportTotalRevenue = orders.Sum(o => o.FinalAmount);
-            ReportTotalCups = orders.Sum(o => o.Items.Sum(i => i.Quantity));
-            ReportAverageOrderValue = ReportTotalOrders > 0 ? Math.Round(ReportTotalRevenue / ReportTotalOrders, 0) : 0;
+                ReportTopProducts = new ObservableCollection<TopProductItemViewModel>(
+                    report.TopProducts.Select(p => new TopProductItemViewModel
+                    {
+                        Rank = p.Rank,
+                        ProductName = p.ProductName,
+                        TotalQuantity = p.TotalQuantity,
+                        TotalRevenue = p.TotalRevenue,
+                        PercentOfTotal = p.PercentOfTotal
+                    })
+                );
 
-            // 4. Tỷ trọng Tiền mặt vs VietQR
-            var allPayments = orders.SelectMany(o => o.Payments).ToList();
-            var cashPayments = allPayments.Where(p => p.PaymentMethod == "CASH").ToList();
-            var qrPayments = allPayments.Where(p => p.PaymentMethod == "VIETQR").ToList();
-
-            ReportCashRevenue = cashPayments.Sum(p => p.Amount);
-            ReportCashCount = cashPayments.Count;
-
-            ReportQrRevenue = qrPayments.Sum(p => p.Amount);
-            ReportQrCount = qrPayments.Count;
-
-            decimal totalPaymentAmount = ReportCashRevenue + ReportQrRevenue;
-            if (totalPaymentAmount > 0)
-            {
-                ReportCashPercent = Math.Round((double)(ReportCashRevenue / totalPaymentAmount) * 100.0, 1);
-                ReportQrPercent = Math.Round((double)(ReportQrRevenue / totalPaymentAmount) * 100.0, 1);
-            }
-            else
-            {
-                ReportCashPercent = 50;
-                ReportQrPercent = 50;
-            }
-
-            // 5. Xếp hạng Top 10 món bán chạy nhất (Best Sellers)
-            var productSales = orders
-                .SelectMany(o => o.Items)
-                .GroupBy(i => i.Variant?.Product?.ProductName ?? "Món nước")
-                .Select(g => new
-                {
-                    ProductName = g.Key,
-                    Quantity = g.Sum(x => x.Quantity),
-                    Revenue = g.Sum(x => x.SubTotal)
-                })
-                .OrderByDescending(x => x.Quantity)
-                .Take(10)
-                .ToList();
-
-            int rank = 1;
-            var topList = productSales.Select(p => new TopProductItemViewModel
-            {
-                Rank = rank++,
-                ProductName = p.ProductName,
-                TotalQuantity = p.Quantity,
-                TotalRevenue = p.Revenue,
-                PercentOfTotal = ReportTotalRevenue > 0 ? Math.Round((double)(p.Revenue / ReportTotalRevenue) * 100.0, 1) : 0
-            }).ToList();
-
-            ReportTopProducts = new ObservableCollection<TopProductItemViewModel>(topList);
-
-            // 6. Lịch sử toàn bộ hóa đơn bán hàng theo bộ lọc
-            var cashiers = await _db.UserAccounts.Include(u => u.Employee).ToDictionaryAsync(u => u.UserId, u => u.Employee?.FullName ?? u.Username);
-
-            _allReportOrders = orders.Select(o =>
-            {
-                string cName = cashiers.TryGetValue(o.CashierUserId, out var cn) ? cn : $"Thu ngân #{o.CashierUserId}";
-                string pMethod = o.Payments.FirstOrDefault()?.PaymentMethod ?? "CASH";
-                string summary = string.Join(", ", o.Items.Select(i => $"{i.Quantity}x {i.Variant?.Product?.ProductName}"));
-
-                return new OrderReportItemViewModel
+                _allReportOrders = report.Orders.Select(o => new OrderReportItemViewModel
                 {
                     OrderNumber = o.OrderNumber,
                     CreatedAt = o.CreatedAt.ToLocalTime(),
-                    CashierName = cName,
-                    BranchName = o.Branch?.BranchName ?? "Chi nhánh",
-                    PaymentMethod = pMethod,
-                    ItemsSummary = summary,
+                    CashierName = o.CashierName,
+                    BranchName = o.BranchName,
+                    PaymentMethod = o.PaymentMethod,
+                    ItemsSummary = o.ItemsSummary,
                     FinalAmount = o.FinalAmount
-                };
-            }).ToList();
+                }).ToList();
 
-            ApplyOrderReportFilter();
+                ApplyOrderReportFilter();
+            }
         }
         catch (Exception ex)
         {
@@ -2276,16 +1546,10 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var cats = await _db.ProductCategories
-                .OrderBy(c => c.DisplayOrder)
-                .ToListAsync();
+            var cats = await ProductApiClient.Instance.GetCategoriesAsync(activeOnly: false);
             ManagementCategories = new ObservableCollection<ProductCategory>(cats);
 
-            var products = await _db.Products
-                .Include(p => p.Category)
-                .Include(p => p.Variants)
-                .OrderByDescending(p => p.ProductId)
-                .ToListAsync();
+            var products = await ProductApiClient.Instance.GetProductsAsync(null, activeOnly: false);
 
             _allManagedProducts = products.Select(p => new ProductManagementItemViewModel
             {
@@ -2328,12 +1592,22 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var categories = await _db.ProductCategories.OrderBy(c => c.DisplayOrder).ToListAsync();
+            var categories = await ProductApiClient.Instance.GetCategoriesAsync(activeOnly: false);
             var dlg = new ProductEditWindow(categories);
             if (dlg.ShowDialog() == true && dlg.ProductToSave != null)
             {
-                _db.Products.Add(dlg.ProductToSave);
-                await _db.SaveChangesAsync();
+                var req = new ProductCreateRequest
+                {
+                    CategoryId = dlg.ProductToSave.CategoryId,
+                    ProductCode = dlg.ProductToSave.ProductCode,
+                    ProductName = dlg.ProductToSave.ProductName,
+                    Description = dlg.ProductToSave.Description,
+                    BasePrice = dlg.ProductToSave.BasePrice,
+                    ImageUrl = dlg.ProductToSave.ImageUrl,
+                    ExtraPriceSizeL = dlg.ExtraPriceSizeL,
+                    IsActive = dlg.ProductToSave.IsActive
+                };
+                await ProductApiClient.Instance.CreateProductAsync(req);
 
                 await LoadDataAsync();
                 await LoadManagementProductsAsync();
@@ -2354,17 +1628,23 @@ public partial class MainViewModel : ObservableObject
         if (item == null) return;
         try
         {
-            var categories = await _db.ProductCategories.OrderBy(c => c.DisplayOrder).ToListAsync();
-            var product = await _db.Products
-                .Include(p => p.Variants)
-                .FirstOrDefaultAsync(p => p.ProductId == item.ProductId);
-
-            if (product == null) return;
+            var categories = await ProductApiClient.Instance.GetCategoriesAsync(activeOnly: false);
+            var product = item.Product;
 
             var dlg = new ProductEditWindow(categories, product);
             if (dlg.ShowDialog() == true)
             {
-                await _db.SaveChangesAsync();
+                var req = new ProductUpdateRequest
+                {
+                    CategoryId = dlg.ProductToSave?.CategoryId ?? product.CategoryId,
+                    ProductName = dlg.ProductToSave?.ProductName ?? product.ProductName,
+                    Description = dlg.ProductToSave?.Description ?? product.Description,
+                    BasePrice = dlg.ProductToSave?.BasePrice ?? product.BasePrice,
+                    ImageUrl = dlg.ProductToSave?.ImageUrl ?? product.ImageUrl,
+                    ExtraPriceSizeL = dlg.ExtraPriceSizeL,
+                    IsActive = dlg.ProductToSave?.IsActive ?? product.IsActive
+                };
+                await ProductApiClient.Instance.UpdateProductAsync(product.ProductId, req);
 
                 await LoadDataAsync();
                 await LoadManagementProductsAsync();
@@ -2385,13 +1665,8 @@ public partial class MainViewModel : ObservableObject
         if (item == null) return;
         try
         {
-            var product = await _db.Products
-                .Include(p => p.Variants)
-                .FirstOrDefaultAsync(p => p.ProductId == item.ProductId);
-
-            if (product == null) return;
-
-            var ingredients = await _db.Ingredients.OrderBy(i => i.IngredientName).ToListAsync();
+            var product = item.Product;
+            var ingredients = await InventoryApiClient.Instance.GetIngredientsAsync(activeOnly: false);
             var dlg = new RecipeConfigWindow(product, ingredients);
             dlg.ShowDialog();
         }
@@ -2407,14 +1682,10 @@ public partial class MainViewModel : ObservableObject
         if (item == null) return;
         try
         {
-            var product = await _db.Products.FindAsync(item.ProductId);
-            if (product != null)
+            var ok = await ProductApiClient.Instance.ToggleProductActiveAsync(item.ProductId);
+            if (ok)
             {
-                product.IsActive = !product.IsActive;
-                await _db.SaveChangesAsync();
-                item.IsActive = product.IsActive;
-
-                // Cập nhật lại menu bán hàng POS
+                item.IsActive = !item.IsActive;
                 await LoadDataAsync();
             }
         }
@@ -2450,13 +1721,13 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var custs = await _db.Customers.OrderByDescending(c => c.TotalSpent).ToListAsync();
+            var custs = await CustomerApiClient.Instance.GetCustomersAsync();
             _allCustomers = custs;
             TotalCustomerCount = custs.Count;
 
             ApplyCustomerFilter();
 
-            var promos = await _db.Promotions.OrderByDescending(p => p.StartDate).ToListAsync();
+            var promos = await PromotionApiClient.Instance.GetPromotionsAsync();
             ManagedPromotions = new ObservableCollection<Promotion>(promos);
             TotalActivePromotions = promos.Count(p => p.IsActive && p.EndDate >= DateTime.UtcNow);
         }
@@ -2503,16 +1774,17 @@ public partial class MainViewModel : ObservableObject
             var dlg = new AddCustomerWindow("");
             if (dlg.ShowDialog() == true && dlg.CreatedCustomer != null)
             {
-                if (await _db.Customers.AnyAsync(c => c.PhoneNumber == dlg.CreatedCustomer.PhoneNumber))
+                var created = await CustomerApiClient.Instance.CreateCustomerAsync(new CustomerCreateRequest
                 {
-                    MessageBox.Show("Số điện thoại này đã được đăng ký thành viên!", "Cảnh Báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                    PhoneNumber = dlg.CreatedCustomer.PhoneNumber,
+                    FullName = dlg.CreatedCustomer.FullName
+                });
 
-                _db.Customers.Add(dlg.CreatedCustomer);
-                await _db.SaveChangesAsync();
-                await LoadCustomerManagementDataAsync();
-                MessageBox.Show($"🎉 Đã đăng ký thành viên cho '{dlg.CreatedCustomer.FullName}' thành công!", "Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+                if (created != null)
+                {
+                    await LoadCustomerManagementDataAsync();
+                    MessageBox.Show($"🎉 Đã đăng ký thành viên cho '{created.FullName}' thành công!", "Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
         }
         catch (Exception ex)
@@ -2527,22 +1799,21 @@ public partial class MainViewModel : ObservableObject
         if (customer == null) return;
         try
         {
-            var dbCust = await _db.Customers.FindAsync(customer.CustomerId);
-            if (dbCust == null) return;
-
-            var dlg = new AdjustCustomerPointsWindow(dbCust);
+            var dlg = new AdjustCustomerPointsWindow(customer);
             if (dlg.ShowDialog() == true)
             {
-                dbCust.TotalPoints = Math.Max(0, dbCust.TotalPoints + dlg.PointDelta);
-                if (dlg.PointDelta > 0)
+                var updated = await CustomerApiClient.Instance.AdjustPointsAsync(new AdjustCustomerPointsRequest
                 {
-                    dbCust.LifetimePoints += dlg.PointDelta;
-                }
-                dbCust.MembershipTier = dlg.SelectedTier;
+                    CustomerId = customer.CustomerId,
+                    PointAdjustment = dlg.PointDelta,
+                    Reason = "Điều chỉnh điểm từ giao diện quản lý"
+                });
 
-                await _db.SaveChangesAsync();
-                await LoadCustomerManagementDataAsync();
-                MessageBox.Show($"🎉 Đã điều chỉnh điểm & hạng thành viên cho '{dbCust.FullName}' thành công!\n• Điểm hiện tại: {dbCust.TotalPoints} điểm\n• Hạng: {dbCust.MembershipTier}", "Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+                if (updated != null)
+                {
+                    await LoadCustomerManagementDataAsync();
+                    MessageBox.Show($"🎉 Đã điều chỉnh điểm & hạng thành viên cho '{updated.FullName}' thành công!\n• Điểm hiện tại: {updated.TotalPoints} điểm\n• Hạng: {updated.MembershipTier}", "Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
         }
         catch (Exception ex)
@@ -2559,16 +1830,27 @@ public partial class MainViewModel : ObservableObject
             var dlg = new PromotionEditWindow(null);
             if (dlg.ShowDialog() == true && dlg.PromoToSave != null)
             {
-                if (await _db.Promotions.AnyAsync(p => p.PromotionCode == dlg.PromoToSave.PromotionCode))
+                var p = dlg.PromoToSave;
+                var req = new PromotionCreateUpdateRequest
                 {
-                    MessageBox.Show("Mã khuyến mãi này đã tồn tại trong hệ thống!", "Cảnh Báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                    PromotionCode = p.PromotionCode,
+                    PromotionName = p.PromotionName,
+                    DiscountType = p.DiscountType,
+                    DiscountValue = p.DiscountValue,
+                    MaxDiscountAmount = p.MaxDiscountAmount,
+                    MinOrderAmount = p.MinOrderAmount,
+                    UsageLimit = p.UsageLimit,
+                    StartDate = p.StartDate,
+                    EndDate = p.EndDate,
+                    IsActive = p.IsActive
+                };
 
-                _db.Promotions.Add(dlg.PromoToSave);
-                await _db.SaveChangesAsync();
-                await LoadCustomerManagementDataAsync();
-                MessageBox.Show($"🎉 Đã tạo voucher '{dlg.PromoToSave.PromotionCode}' thành công!", "Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+                var created = await PromotionApiClient.Instance.CreatePromotionAsync(req);
+                if (created != null)
+                {
+                    await LoadCustomerManagementDataAsync();
+                    MessageBox.Show($"🎉 Đã tạo voucher '{created.PromotionCode}' thành công!", "Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
         }
         catch (Exception ex)
@@ -2583,15 +1865,30 @@ public partial class MainViewModel : ObservableObject
         if (promo == null) return;
         try
         {
-            var dbPromo = await _db.Promotions.FindAsync(promo.PromotionId);
-            if (dbPromo == null) return;
-
-            var dlg = new PromotionEditWindow(dbPromo);
-            if (dlg.ShowDialog() == true)
+            var dlg = new PromotionEditWindow(promo);
+            if (dlg.ShowDialog() == true && dlg.PromoToSave != null)
             {
-                await _db.SaveChangesAsync();
-                await LoadCustomerManagementDataAsync();
-                MessageBox.Show($"🎉 Đã cập nhật voucher '{dbPromo.PromotionCode}' thành công!", "Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+                var p = dlg.PromoToSave;
+                var req = new PromotionCreateUpdateRequest
+                {
+                    PromotionCode = p.PromotionCode,
+                    PromotionName = p.PromotionName,
+                    DiscountType = p.DiscountType,
+                    DiscountValue = p.DiscountValue,
+                    MaxDiscountAmount = p.MaxDiscountAmount,
+                    MinOrderAmount = p.MinOrderAmount,
+                    UsageLimit = p.UsageLimit,
+                    StartDate = p.StartDate,
+                    EndDate = p.EndDate,
+                    IsActive = p.IsActive
+                };
+
+                var updated = await PromotionApiClient.Instance.UpdatePromotionAsync(promo.PromotionId, req);
+                if (updated != null)
+                {
+                    await LoadCustomerManagementDataAsync();
+                    MessageBox.Show($"🎉 Đã cập nhật voucher '{updated.PromotionCode}' thành công!", "Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
         }
         catch (Exception ex)
@@ -2606,11 +1903,9 @@ public partial class MainViewModel : ObservableObject
         if (promo == null) return;
         try
         {
-            var dbPromo = await _db.Promotions.FindAsync(promo.PromotionId);
-            if (dbPromo != null)
+            bool success = await PromotionApiClient.Instance.TogglePromotionActiveAsync(promo.PromotionId);
+            if (success)
             {
-                dbPromo.IsActive = !dbPromo.IsActive;
-                await _db.SaveChangesAsync();
                 await LoadCustomerManagementDataAsync();
             }
         }
@@ -2640,15 +1935,27 @@ public partial class MainViewModel : ObservableObject
             var dlg = new ShiftOpenWindow(branchId, branchName, cashierId, cashierName);
             if (dlg.ShowDialog() == true && dlg.CreatedShift != null)
             {
-                _db.WorkShifts.Add(dlg.CreatedShift);
-                await _db.SaveChangesAsync();
-                CurrentShift = dlg.CreatedShift;
+                var req = new OpenShiftRequest
+                {
+                    BranchId = branchId,
+                    CashierUserId = cashierId,
+                    CashierName = cashierName,
+                    ShiftName = dlg.CreatedShift.ShiftName,
+                    OpeningCash = dlg.CreatedShift.OpeningCash,
+                    Notes = dlg.CreatedShift.Notes
+                };
 
-                MessageBox.Show($"🎉 Đã mở ca '{CurrentShift.ShiftName}' (#{CurrentShift.ShiftCode}) thành công!\n" +
-                                $"• Tiền đầu ca: {CurrentShift.OpeningCash:N0} đ\n" +
-                                $"• Thu ngân: {CurrentShift.CashierName}\n" +
-                                $"Chúc bạn một ca làm việc thuận lợi!",
-                                "Mở Ca Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+                var opened = await ShiftApiClient.Instance.OpenShiftAsync(req);
+                if (opened != null)
+                {
+                    CurrentShift = opened;
+
+                    MessageBox.Show($"🎉 Đã mở ca '{CurrentShift.ShiftName}' (#{CurrentShift.ShiftCode}) thành công!\n" +
+                                    $"• Tiền đầu ca: {CurrentShift.OpeningCash:N0} đ\n" +
+                                    $"• Thu ngân: {CurrentShift.CashierName}\n" +
+                                    $"Chúc bạn một ca làm việc thuận lợi!",
+                                    "Mở Ca Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
         }
         catch (Exception ex)
@@ -2668,25 +1975,25 @@ public partial class MainViewModel : ObservableObject
                 return;
             }
 
-            var dbShift = await _db.WorkShifts.FindAsync(CurrentShift.ShiftId);
-            if (dbShift == null) return;
-
-            var dlg = new ShiftCloseWindow(dbShift);
+            var dlg = new ShiftCloseWindow(CurrentShift);
             if (dlg.ShowDialog() == true)
             {
-                dbShift.EndTime = DateTime.UtcNow;
-                dbShift.ActualClosingCash = dlg.ActualCash;
-                dbShift.DifferenceAmount = dlg.Difference;
-                dbShift.Notes = dlg.ClosingNotes;
-                dbShift.Status = "CLOSED";
+                var req = new CloseShiftRequest
+                {
+                    ShiftId = CurrentShift.ShiftId,
+                    ActualClosingCash = dlg.ActualCash,
+                    Notes = dlg.ClosingNotes
+                };
 
-                await _db.SaveChangesAsync();
+                var closedShift = await ShiftApiClient.Instance.CloseShiftAsync(req);
+                if (closedShift != null)
+                {
+                    CurrentShift = null;
 
-                CurrentShift = null;
-
-                // Mở Phiếu kết ca Z-Report
-                var rptDlg = new ZReportWindow(dbShift, CurrentSession.BranchName);
-                rptDlg.ShowDialog();
+                    // Mở Phiếu kết ca Z-Report
+                    var rptDlg = new ZReportWindow(closedShift, CurrentSession.BranchName);
+                    rptDlg.ShowDialog();
+                }
             }
         }
         catch (Exception ex)
@@ -2765,48 +2072,31 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var emps = await _db.Employees.OrderBy(e => e.EmployeeId).ToListAsync();
-            var users = await _db.UserAccounts.Include(u => u.Employee).ToListAsync();
-            var assignments = await _db.UserRoleBranchAssignments
-                .Include(a => a.Role)
-                .Include(a => a.Branch)
-                .ToListAsync();
-
-            var list = new List<EmployeeListItemViewModel>();
-            foreach (var emp in emps)
+            var empDtos = await EmployeeApiClient.Instance.GetEmployeesAsync();
+            var list = empDtos.Select(emp => new EmployeeListItemViewModel
             {
-                var user = users.FirstOrDefault(u => u.EmployeeId == emp.EmployeeId);
-                var assign = user != null ? assignments.FirstOrDefault(a => a.UserId == user.UserId) : null;
-
-                list.Add(new EmployeeListItemViewModel
-                {
-                    EmployeeId = emp.EmployeeId,
-                    EmployeeCode = emp.EmployeeCode,
-                    FullName = emp.FullName,
-                    Phone = emp.Phone,
-                    Email = emp.Email,
-                    CitizenId = emp.CitizenId,
-                    Status = emp.Status,
-                    HireDate = emp.HireDate,
-                    UserId = user?.UserId,
-                    Username = user?.Username ?? "",
-                    RoleId = assign?.RoleId,
-                    RoleCode = assign?.Role?.RoleCode ?? "",
-                    RoleName = assign?.Role?.RoleName ?? "Chưa phân vai trò",
-                    BranchId = assign?.BranchId,
-                    BranchName = assign?.Branch?.BranchName ?? "Chưa gán chi nhánh"
-                });
-            }
+                EmployeeId = emp.EmployeeId,
+                EmployeeCode = emp.EmployeeCode,
+                FullName = emp.FullName,
+                Phone = emp.Phone,
+                Email = emp.Email,
+                CitizenId = emp.CitizenId,
+                Status = emp.Status,
+                HireDate = emp.HireDate,
+                UserId = emp.UserId,
+                Username = emp.Username,
+                RoleId = emp.RoleId,
+                RoleCode = emp.RoleCode,
+                RoleName = string.IsNullOrWhiteSpace(emp.RoleName) ? "Chưa phân vai trò" : emp.RoleName,
+                BranchId = emp.BranchId,
+                BranchName = string.IsNullOrWhiteSpace(emp.BranchName) ? "Chưa gán chi nhánh" : emp.BranchName
+            }).ToList();
 
             _allEmployees = list;
             TotalEmployeeCount = list.Count;
             ApplyEmployeeFilter();
 
-            var shifts = await _db.WorkShifts
-                .Include(s => s.Branch)
-                .OrderByDescending(s => s.ShiftId)
-                .ToListAsync();
-
+            var shifts = await ShiftApiClient.Instance.GetShiftsAsync();
             _allShifts = shifts;
             TotalShiftCount = shifts.Count;
             ApplyShiftFilter();
@@ -2864,47 +2154,36 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var roles = await _db.Roles.ToListAsync();
-            var branches = await _db.Branches.Where(b => b.IsActive).ToListAsync();
+            var roles = await EmployeeApiClient.Instance.GetRolesAsync();
+            var branches = (await AuthenticationApiClient.Instance.GetBranchesAsync()).Where(b => b.IsActive).ToList();
 
             var dlg = new EmployeeEditWindow(roles, branches, null);
             if (dlg.ShowDialog() == true && dlg.ResultEmployee != null)
             {
-                if (await _db.UserAccounts.AnyAsync(u => u.Username.ToLower() == dlg.ResultUsername.ToLower()))
+                var req = new EmployeeCreateRequest
                 {
-                    MessageBox.Show($"Tên đăng nhập '{dlg.ResultUsername}' đã tồn tại!", "Cảnh Báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                _db.Employees.Add(dlg.ResultEmployee);
-                await _db.SaveChangesAsync();
-
-                string salt = "SALT_CAFE_2026";
-                string pwdHash = AuthService.HashMd5("123456");
-
-                var userAcc = new UserAccount
-                {
-                    EmployeeId = dlg.ResultEmployee.EmployeeId,
-                    Username = dlg.ResultUsername.ToLower(),
-                    PasswordHash = pwdHash,
-                    PasswordSalt = salt,
-                    IsActive = dlg.ResultEmployee.Status == "ACTIVE"
-                };
-                _db.UserAccounts.Add(userAcc);
-                await _db.SaveChangesAsync();
-
-                var assignment = new UserRoleBranchAssignment
-                {
-                    UserId = userAcc.UserId,
+                    EmployeeCode = dlg.ResultEmployee.EmployeeCode,
+                    FullName = dlg.ResultEmployee.FullName,
+                    Phone = dlg.ResultEmployee.Phone,
+                    Email = dlg.ResultEmployee.Email,
+                    CitizenId = dlg.ResultEmployee.CitizenId,
+                    Status = dlg.ResultEmployee.Status,
+                    Username = dlg.ResultUsername,
+                    Password = "123456",
                     RoleId = dlg.ResultRoleId,
-                    BranchId = dlg.ResultBranchId,
-                    IsActive = true
+                    BranchId = dlg.ResultBranchId
                 };
-                _db.UserRoleBranchAssignments.Add(assignment);
-                await _db.SaveChangesAsync();
 
-                await LoadEmployeeManagementDataAsync();
-                MessageBox.Show($"🎉 Đã thêm nhân viên '{dlg.ResultEmployee.FullName}' thành công!\n• Tài khoản: {dlg.ResultUsername}\n• Mật khẩu mặc định: 123456", "Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+                var res = await EmployeeApiClient.Instance.CreateEmployeeAsync(req);
+                if (res != null)
+                {
+                    await LoadEmployeeManagementDataAsync();
+                    MessageBox.Show($"🎉 Đã thêm nhân viên '{res.FullName}' thành công!\n• Tài khoản: {dlg.ResultUsername}\n• Mật khẩu mặc định: 123456", "Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Thêm nhân viên thất bại hoặc tài khoản đã tồn tại!", "Cảnh Báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
         catch (Exception ex)
@@ -2919,77 +2198,47 @@ public partial class MainViewModel : ObservableObject
         if (empVm == null) return;
         try
         {
-            var emp = await _db.Employees.FindAsync(empVm.EmployeeId);
-            if (emp == null) return;
+            var roles = await EmployeeApiClient.Instance.GetRolesAsync();
+            var branches = (await AuthenticationApiClient.Instance.GetBranchesAsync()).Where(b => b.IsActive).ToList();
 
-            var roles = await _db.Roles.ToListAsync();
-            var branches = await _db.Branches.Where(b => b.IsActive).ToListAsync();
-
-            var dlg = new EmployeeEditWindow(roles, branches, emp, empVm.Username, empVm.RoleId, empVm.BranchId);
-            if (dlg.ShowDialog() == true)
+            var empEntity = new Employee
             {
-                string newUsername = dlg.ResultUsername.Trim().ToLower();
+                EmployeeId = empVm.EmployeeId,
+                EmployeeCode = empVm.EmployeeCode,
+                FullName = empVm.FullName,
+                Phone = empVm.Phone,
+                Email = empVm.Email,
+                CitizenId = empVm.CitizenId,
+                Status = empVm.Status,
+                HireDate = empVm.HireDate
+            };
 
-                // Kiểm tra trùng username với user khác
-                if (await _db.UserAccounts.AnyAsync(u => u.Username.ToLower() == newUsername && (!empVm.UserId.HasValue || u.UserId != empVm.UserId.Value)))
+            var dlg = new EmployeeEditWindow(roles, branches, empEntity, empVm.Username, empVm.RoleId, empVm.BranchId);
+            if (dlg.ShowDialog() == true && dlg.ResultEmployee != null)
+            {
+                var req = new EmployeeUpdateRequest
                 {
-                    MessageBox.Show($"Tên đăng nhập '{newUsername}' đã được sử dụng bởi nhân viên khác!", "Trùng tên đăng nhập", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+                    FullName = dlg.ResultEmployee.FullName,
+                    Phone = dlg.ResultEmployee.Phone,
+                    Email = dlg.ResultEmployee.Email,
+                    CitizenId = dlg.ResultEmployee.CitizenId,
+                    Status = dlg.ResultEmployee.Status,
+                    Username = dlg.ResultUsername.Trim().ToLower(),
+                    RoleId = dlg.ResultRoleId,
+                    BranchId = dlg.ResultBranchId,
+                    ResetPassword = dlg.ResetPasswordRequested
+                };
 
-                // Tìm hoặc tạo UserAccount cho nhân viên
-                UserAccount? user = null;
-                if (empVm.UserId.HasValue)
+                var res = await EmployeeApiClient.Instance.UpdateEmployeeAsync(empVm.EmployeeId, req);
+                if (res != null)
                 {
-                    user = await _db.UserAccounts.FindAsync(empVm.UserId.Value);
-                }
-                if (user == null)
-                {
-                    user = await _db.UserAccounts.FirstOrDefaultAsync(u => u.EmployeeId == emp.EmployeeId);
-                }
-
-                if (user == null)
-                {
-                    // Tạo tài khoản mới cho nhân viên nếu chưa có
-                    user = new UserAccount
-                    {
-                        EmployeeId = emp.EmployeeId,
-                        Username = newUsername,
-                        PasswordHash = AuthService.HashMd5("123456"),
-                        PasswordSalt = "SALT_CAFE_2026",
-                        IsActive = emp.Status == "ACTIVE",
-                        IsLocked = emp.Status != "ACTIVE"
-                    };
-                    _db.UserAccounts.Add(user);
-                    await _db.SaveChangesAsync();
+                    await LoadEmployeeManagementDataAsync();
+                    MessageBox.Show($"🎉 Đã cập nhật hồ sơ nhân viên '{res.FullName}' thành công!" + (dlg.ResetPasswordRequested ? "\n• Đã đặt lại mật khẩu về: 123456" : ""), "Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
-                    user.Username = newUsername;
-                    user.IsActive = emp.Status == "ACTIVE";
-                    user.IsLocked = emp.Status != "ACTIVE";
-                    if (dlg.ResetPasswordRequested)
-                    {
-                        user.PasswordHash = AuthService.HashMd5("123456");
-                    }
+                    MessageBox.Show("Cập nhật nhân viên thất bại!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
-
-                // Xóa các phân quyền cũ của user này để gán 1 vai trò mới chuẩn xác, tránh vi phạm ràng buộc Unique
-                var oldAssignments = await _db.UserRoleBranchAssignments.Where(a => a.UserId == user.UserId).ToListAsync();
-                _db.UserRoleBranchAssignments.RemoveRange(oldAssignments);
-
-                _db.UserRoleBranchAssignments.Add(new UserRoleBranchAssignment
-                {
-                    UserId = user.UserId,
-                    RoleId = dlg.ResultRoleId,
-                    BranchId = dlg.ResultBranchId,
-                    IsActive = true,
-                    AssignedAt = DateTime.UtcNow
-                });
-
-                await _db.SaveChangesAsync();
-                await LoadEmployeeManagementDataAsync();
-                MessageBox.Show($"🎉 Đã cập nhật hồ sơ nhân viên '{emp.FullName}' thành công!" + (dlg.ResetPasswordRequested ? "\n• Đã đặt lại mật khẩu về: 123456" : ""), "Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
         catch (Exception ex)
@@ -3005,24 +2254,15 @@ public partial class MainViewModel : ObservableObject
         if (empVm == null) return;
         try
         {
-            var emp = await _db.Employees.FindAsync(empVm.EmployeeId);
-            if (emp == null) return;
-
-            emp.Status = emp.Status == "ACTIVE" ? "INACTIVE" : "ACTIVE";
-
-            // Tìm user liên kết
-            var user = empVm.UserId.HasValue
-                ? await _db.UserAccounts.FindAsync(empVm.UserId.Value)
-                : await _db.UserAccounts.FirstOrDefaultAsync(u => u.EmployeeId == emp.EmployeeId);
-
-            if (user != null)
+            var ok = await EmployeeApiClient.Instance.ToggleStatusAsync(empVm.EmployeeId);
+            if (ok)
             {
-                user.IsActive = emp.Status == "ACTIVE";
-                user.IsLocked = emp.Status != "ACTIVE";
+                await LoadEmployeeManagementDataAsync();
             }
-
-            await _db.SaveChangesAsync();
-            await LoadEmployeeManagementDataAsync();
+            else
+            {
+                MessageBox.Show("Không thể thay đổi trạng thái nhân viên!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
         catch (Exception ex)
         {
@@ -3039,12 +2279,14 @@ public partial class MainViewModel : ObservableObject
         {
             try
             {
-                var user = await _db.UserAccounts.FindAsync(empVm.UserId.Value);
-                if (user != null)
+                var ok = await EmployeeApiClient.Instance.ResetPasswordAsync(empVm.UserId.Value, "123456");
+                if (ok)
                 {
-                    user.PasswordHash = AuthService.HashMd5("123456");
-                    await _db.SaveChangesAsync();
                     MessageBox.Show($"Đã đặt lại mật khẩu của '{empVm.Username}' về '123456' thành công!", "Thành công", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Đặt lại mật khẩu thất bại!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)

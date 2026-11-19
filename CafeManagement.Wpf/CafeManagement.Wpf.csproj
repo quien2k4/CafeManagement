@@ -10,7 +10,20 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CafeManagement.Core\CafeManagement.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="CafeManagement.Core.Models" />
+    <Using Include="CafeManagement.Core.Common.Models" />
+    <Using Include="CafeManagement.Core.DTOs.Categories" />
+    <Using Include="CafeManagement.Core.DTOs.Products" />
+    <Using Include="CafeManagement.Core.DTOs.Variants" />
+    <Using Include="CafeManagement.Core.DTOs.Toppings" />
+    <Using Include="CafeManagement.Core.DTOs.Recipes" />
   </ItemGroup>
 
 </Project>

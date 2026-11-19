@@ -1,0 +1,112 @@
+<Window x:Class="CafeManagement.Wpf.Views.Products.ProductEditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Thêm / Chỉnh Sửa Món Nước &amp; Bảng Giá" 
+        Height="580" Width="520"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F8F9FA"
+        FontFamily="Segoe UI">
+
+    <Grid Margin="25,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="White" CornerRadius="10" Padding="15" Margin="0,0,0,15" BorderBrush="#E9ECEF" BorderThickness="1">
+            <StackPanel>
+                <TextBlock Name="TxtTitle" Text="📋 THÔNG TIN MÓN NƯỚC &amp; ĐỊNH GIÁ" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/>
+                <TextBlock Text="Cập nhật tên món, danh mục, giá bán cơ bản và các kích cỡ" FontSize="12" Foreground="#7F8C8D" Margin="0,3,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Body Form -->
+        <Border Grid.Row="1" Background="White" CornerRadius="10" Padding="20" BorderBrush="#E9ECEF" BorderThickness="1">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- Danh mục món -->
+                    <TextBlock Text="1. Danh mục món:" FontWeight="Bold" FontSize="13" Foreground="#495057" Margin="0,0,0,6"/>
+                    <ComboBox Name="CboCategory" DisplayMemberPath="CategoryName" Height="40" FontSize="14" VerticalContentAlignment="Center" Margin="0,0,0,14"/>
+
+                    <!-- Mã món và Tên món -->
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                            <TextBlock Text="2. Mã món:" FontWeight="Bold" FontSize="13" Foreground="#495057" Margin="0,0,0,6"/>
+                            <TextBox Name="TxtProductCode" Text="CF_MOI" Height="40" FontSize="14" FontWeight="Bold" Padding="8,0" VerticalContentAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="3. Tên món nước:" FontWeight="Bold" FontSize="13" Foreground="#495057" Margin="0,0,0,6"/>
+                            <TextBox Name="TxtProductName" Text="" Height="40" FontSize="14" FontWeight="Bold" Padding="8,0" VerticalContentAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Giá bán Size M và Size L -->
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                            <TextBlock Text="4. Giá bán Size M (Gốc):" FontWeight="Bold" FontSize="13" Foreground="#495057" Margin="0,0,0,6"/>
+                            <DockPanel>
+                                <TextBlock Text="đ" DockPanel.Dock="Right" FontWeight="Bold" FontSize="14" Foreground="#27AE60" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                <TextBox Name="TxtBasePrice" Text="30000" Height="40" FontSize="15" FontWeight="Bold" TextAlignment="Right" Padding="8,0" VerticalContentAlignment="Center"/>
+                            </DockPanel>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="5. Phụ thu Size L:" FontWeight="Bold" FontSize="13" Foreground="#495057" Margin="0,0,0,6"/>
+                            <DockPanel>
+                                <TextBlock Text="đ" DockPanel.Dock="Right" FontWeight="Bold" FontSize="14" Foreground="#E65100" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                <TextBox Name="TxtExtraPriceL" Text="6000" Height="40" FontSize="15" FontWeight="Bold" TextAlignment="Right" Padding="8,0" VerticalContentAlignment="Center"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Mô tả món -->
+                    <TextBlock Text="6. Mô tả món:" FontWeight="Bold" FontSize="13" Foreground="#495057" Margin="0,0,0,6"/>
+                    <TextBox Name="TxtDescription" Height="55" FontSize="13" Padding="8" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,0,0,14"/>
+
+                    <!-- Trạng thái kinh doanh -->
+                    <CheckBox Name="ChkIsActive" Content="Đang kinh doanh (Hiển thị trên màn hình POS bán hàng)" IsChecked="True" FontWeight="Bold" FontSize="13" Foreground="#2C3E50"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Footer Buttons -->
+        <Grid Grid.Row="2" Margin="0,15,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="120" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0" Content="Hủy" Click="Cancel_Click" Height="44" Margin="0,0,10,0" Background="#EDF2F7" FontWeight="Bold" BorderThickness="0" Cursor="Hand">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="6"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+            <Button Grid.Column="1" Content="LƯU THÔNG TIN MÓN" Click="Save_Click" Height="44" Background="#27AE60" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" Cursor="Hand">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="6"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+        </Grid>
+    </Grid>
+</Window>

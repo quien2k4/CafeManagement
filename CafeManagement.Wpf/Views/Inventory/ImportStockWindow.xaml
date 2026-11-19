@@ -1,0 +1,100 @@
+<Window x:Class="CafeManagement.Wpf.Views.Inventory.ImportStockWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Nhập Thêm Nguyên Vật Liệu Vào Kho" 
+        Height="580" Width="520"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="#F8F9FA"
+        FontFamily="Segoe UI">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="White" CornerRadius="10" Padding="15" Margin="0,0,0,15" BorderBrush="#E9ECEF" BorderThickness="1">
+            <StackPanel>
+                <TextBlock Text="📦 NHẬP KHO NGUYÊN VẬT LIỆU" FontWeight="Bold" FontSize="16" Foreground="#2C3E50"/>
+                <TextBlock Text="Hỗ trợ nhập số lẻ hoặc theo quy cách thùng / lốc (Ví dụ: 330 * 24)" FontSize="12" Foreground="#7F8C8D" Margin="0,3,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Form nhập liệu có ScrollViewer chống tràn màn hình -->
+        <Border Grid.Row="1" Background="White" CornerRadius="10" Padding="15" BorderBrush="#E9ECEF" BorderThickness="1">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="0,0,5,0">
+                    <!-- 1. Chọn nguyên liệu -->
+                    <TextBlock Text="1. Chọn nguyên vật liệu:" FontWeight="Bold" FontSize="13" Foreground="#495057" Margin="0,0,0,6"/>
+                    <ComboBox Name="CboIngredients" ItemsSource="{Binding AvailableIngredients}" DisplayMemberPath="IngredientName"
+                              Height="40" FontSize="14" VerticalContentAlignment="Center" Margin="0,0,0,15" SelectionChanged="CboIngredients_SelectionChanged"/>
+
+                    <!-- 2. Số lượng hoặc Quy cách nhân -->
+                    <DockPanel Margin="0,0,0,4">
+                        <TextBlock Text="2. Số lượng nhập hoặc Phép nhân:" FontWeight="Bold" FontSize="13" Foreground="#495057"/>
+                        <TextBlock Text="(Gõ 330*24 hoặc 330x24)" FontSize="11" Foreground="#95A5A6" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <DockPanel Margin="0,0,0,6">
+                        <Border DockPanel.Dock="Right" Background="#F1F3F5" CornerRadius="0,6,6,0" Padding="12,0" Margin="0">
+                            <TextBlock Name="TxtUom" Text="g" FontWeight="Bold" FontSize="14" Foreground="#E65100" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBox Name="TxtQuantity" Height="42" FontSize="16" FontWeight="Bold" Padding="10,0" VerticalContentAlignment="Center" 
+                                 TextChanged="TxtQuantity_TextChanged" BorderBrush="#CED4DA" ToolTip="Nhập số lượng trực tiếp hoặc phép nhân (VD: 330 * 24)"/>
+                    </DockPanel>
+
+                    <!-- Thanh gợi ý nhân nhanh theo quy cách -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="Nhân nhanh:" FontSize="11" Foreground="#7F8C8D" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <Button Content="× 12" Click="Multiply_Click" Tag="12" Padding="6,2" Margin="0,0,5,0" Background="#EDF2F7" FontSize="11" Cursor="Hand" BorderThickness="0"/>
+                        <Button Content="× 24 (Thùng)" Click="Multiply_Click" Tag="24" Padding="6,2" Margin="0,0,5,0" Background="#EDF2F7" FontSize="11" Cursor="Hand" BorderThickness="0"/>
+                        <Button Content="× 30" Click="Multiply_Click" Tag="30" Padding="6,2" Margin="0,0,5,0" Background="#EDF2F7" FontSize="11" Cursor="Hand" BorderThickness="0"/>
+                        <Button Content="× 48" Click="Multiply_Click" Tag="48" Padding="6,2" Margin="0,0,5,0" Background="#EDF2F7" FontSize="11" Cursor="Hand" BorderThickness="0"/>
+                        <Button Content="× 1,000 (kg/L)" Click="Multiply_Click" Tag="1000" Padding="6,2" Margin="0,0,5,0" Background="#EDF2F7" FontSize="11" Cursor="Hand" BorderThickness="0"/>
+                    </StackPanel>
+
+                    <!-- Banner Live Preview hiển thị kết quả tính toán -->
+                    <Border Name="PnlPreview" Background="#EAFAF1" CornerRadius="6" Padding="12,8" Margin="0,0,0,15" BorderBrush="#D4EFDF" BorderThickness="1">
+                        <DockPanel>
+                            <TextBlock Text="🧮 Tổng thực tế nhập vào kho:" FontWeight="SemiBold" FontSize="12" Foreground="#27AE60" VerticalAlignment="Center"/>
+                            <TextBlock Name="TxtPreviewResult" Text="0" FontWeight="Bold" FontSize="15" Foreground="#1E8449" HorizontalAlignment="Right"/>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- 3. Ghi chú nhập hàng -->
+                    <TextBlock Text="3. Ghi chú nhập kho:" FontWeight="Bold" FontSize="13" Foreground="#495057" Margin="0,0,0,6"/>
+                    <TextBox Name="TxtNote" Text="Nhập hàng từ Nhà Cung Cấp" Height="40" FontSize="13" Padding="8,0" VerticalContentAlignment="Center" Background="#FAFAFA" BorderBrush="#CED4DA"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Footer: Nút bấm -->
+        <Grid Grid.Row="2" Margin="0,15,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0" Content="Hủy" Click="Cancel_Click" Height="44" Margin="0,0,10,0" Background="#EDF2F7" FontWeight="Bold" BorderThickness="0" Cursor="Hand">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="6"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+            <Button Grid.Column="1" Content="TIẾP TỤC XÁC NHẬN NHẬP KHO ➔" Click="Confirm_Click" Height="44" Background="#27AE60" Foreground="White" FontWeight="Bold" FontSize="13" BorderThickness="0" Cursor="Hand">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="6"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+        </Grid>
+    </Grid>
+</Window>

@@ -1,3 +1,5 @@
 <Solution>
-  <Project Path="CafeManagement.Wpf/CafeManagement.Wpf.csproj" />
+  <Project Path="CafeManagement.Core\CafeManagement.Core.csproj" />
+  <Project Path="CafeManagement.Api\CafeManagement.Api.csproj" />
+  <Project Path="CafeManagement.Wpf\CafeManagement.Wpf.csproj" />
 </Solution>

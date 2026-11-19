@@ -1,5 +1,5 @@
-﻿using System.Windows;
-using CafeManagement.Wpf.Models;
+using System.Windows;
+using CafeManagement.Core.Models;
 using CafeManagement.Wpf.ViewModels;
 
 namespace CafeManagement.Wpf;
@@ -20,8 +20,8 @@ public partial class MainWindow : Window
         vm.RequestLogout += () =>
         {
             var ask = MessageBox.Show(
-                "Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?", 
-                "Xác Nhận Đăng Xuất", 
+                "B?n c� ch?c ch?n mu?n dang xu?t kh?i h? th?ng?", 
+                "X�c Nh?n �ang Xu?t", 
                 MessageBoxButton.YesNo, 
                 MessageBoxImage.Question);
 

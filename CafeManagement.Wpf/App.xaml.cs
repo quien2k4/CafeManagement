@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Threading;
 using CafeManagement.Wpf.Views;
+using CafeManagement.Wpf.Views.Authentication;
 
 namespace CafeManagement.Wpf;
 
@@ -10,13 +11,8 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // Bắt lỗi toàn cục trên luồng giao diện Dispatcher
         DispatcherUnhandledException += App_DispatcherUnhandledException;
-
-        // Bắt lỗi trên các luồng nền AppDomain
         AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-
-        // Bắt lỗi Task bất đồng bộ
         TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
 
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
