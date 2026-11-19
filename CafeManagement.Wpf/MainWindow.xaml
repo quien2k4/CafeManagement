@@ -1689,41 +1689,65 @@
                                                         <TextBlock Text="{Binding BranchName, StringFormat='- {0}'}" FontSize="11" Foreground="#95A5A6" Margin="4,0,0,0" VerticalAlignment="Center"/>
                                                     </StackPanel>
 
-                                                    <Border HorizontalAlignment="Right" CornerRadius="4" Padding="6,2">
-                                                        <Border.Style>
-                                                            <Style TargetType="Border">
-                                                                <Setter Property="Background" Value="#EAFAF1"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding PaymentMethod}" Value="VIETQR">
-                                                                        <Setter Property="Background" Value="#EBF5FB"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Border.Style>
-                                                        <TextBlock Text="{Binding PaymentMethodDisplay}" FontSize="10" FontWeight="Bold">
-                                                            <TextBlock.Style>
-                                                                <Style TargetType="TextBlock">
-                                                                    <Setter Property="Foreground" Value="#27AE60"/>
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                        <!-- Trạng thái hoàn tiền / thanh toán -->
+                                                        <Border Background="{Binding StatusBadgeBackground}" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
+                                                            <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusColor}" FontSize="10" FontWeight="Bold"/>
+                                                        </Border>
+
+                                                        <!-- Hình thức thanh toán -->
+                                                        <Border CornerRadius="4" Padding="6,2">
+                                                            <Border.Style>
+                                                                <Style TargetType="Border">
+                                                                    <Setter Property="Background" Value="#EAFAF1"/>
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding PaymentMethod}" Value="VIETQR">
-                                                                            <Setter Property="Foreground" Value="#2980B9"/>
+                                                                            <Setter Property="Background" Value="#EBF5FB"/>
                                                                         </DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>
-                                                            </TextBlock.Style>
-                                                        </TextBlock>
-                                                    </Border>
+                                                            </Border.Style>
+                                                            <TextBlock Text="{Binding PaymentMethodDisplay}" FontSize="10" FontWeight="Bold">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Foreground" Value="#27AE60"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding PaymentMethod}" Value="VIETQR">
+                                                                                <Setter Property="Foreground" Value="#2980B9"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </Border>
+                                                    </StackPanel>
                                                 </DockPanel>
 
-                                                <!-- Dòng 2: Món đã mua & Tổng tiền -->
+                                                <!-- Dòng 2: Món đã mua, Tổng tiền & Nút Hoàn tiền -->
                                                 <DockPanel Grid.Row="1" Margin="0,6,0,0">
                                                     <StackPanel DockPanel.Dock="Left">
-                                                        <TextBlock Text="{Binding ItemsSummary}" FontSize="12" Foreground="#4A5568" TextTrimming="CharacterEllipsis" MaxWidth="360"/>
+                                                        <TextBlock Text="{Binding ItemsSummary}" FontSize="12" Foreground="#4A5568" TextTrimming="CharacterEllipsis" MaxWidth="320"/>
                                                         <TextBlock Text="{Binding CashierName, StringFormat='Thu ngân: {0}'}" FontSize="11" Foreground="#A0AEC0" Margin="0,2,0,0"/>
                                                     </StackPanel>
 
-                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding FinalAmount, StringFormat='{}{0:N0} đ'}" 
-                                                               FontWeight="Bold" FontSize="15" Foreground="#27AE60" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding FinalAmount, StringFormat='{}{0:N0} đ'}" 
+                                                                   FontWeight="Bold" FontSize="15" Foreground="#27AE60" VerticalAlignment="Center"/>
+
+                                                        <!-- Nút Hoàn Tiền -->
+                                                        <Button Content="↩️ Hoàn tiền" 
+                                                                Command="{Binding DataContext.OpenRefundDialogCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                Visibility="{Binding CanRefund, Converter={StaticResource BoolToVis}}"
+                                                                Background="#FFF5F5" Foreground="#E53E3E" BorderBrush="#FEB2B2" BorderThickness="1"
+                                                                FontSize="11" FontWeight="Bold" Padding="8,3" Cursor="Hand" Margin="10,0,0,0" VerticalAlignment="Center">
+                                                            <Button.Resources>
+                                                                <Style TargetType="Border">
+                                                                    <Setter Property="CornerRadius" Value="4"/>
+                                                                </Style>
+                                                            </Button.Resources>
+                                                        </Button>
+                                                    </StackPanel>
                                                 </DockPanel>
                                             </Grid>
                                         </Border>

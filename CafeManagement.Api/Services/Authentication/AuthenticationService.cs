@@ -154,41 +154,56 @@ public class AuthenticationService : IAuthenticationService
         }
         catch { }
 
-        var branch = await _db.Branches.FirstOrDefaultAsync(b => b.BranchId == selectedBranchId)
-                     ?? new Branch { BranchId = selectedBranchId, BranchName = "Chi nhánh Quận 1 (BR01)", BranchCode = "BR01" };
-
-        Role? role = null;
-        if (user != null)
+        var branch = await _db.Branches.FirstOrDefaultAsync(b => b.BranchId == selectedBranchId);
+        if (branch == null)
         {
-            try
-            {
-                var assign = await _db.UserRoleBranchAssignments
-                    .Include(a => a.Role)
-                    .FirstOrDefaultAsync(a => a.UserId == user.UserId && a.BranchId == branch.BranchId);
-
-                if (assign == null)
-                {
-                    assign = await _db.UserRoleBranchAssignments
-                        .Include(a => a.Role)
-                        .FirstOrDefaultAsync(a => a.UserId == user.UserId);
-                }
-
-                role = assign?.Role;
-            }
-            catch { }
+            throw new InvalidOperationException($"Chi nhánh được chọn (ID={selectedBranchId}) không tồn tại trong hệ thống!");
         }
 
-        string roleCode = role?.RoleCode ?? (trimmedUser.ToLower() switch
-        {
-            "admin" => "OWNER",
-            "cashier1" => "CASHIER",
-            "barista1" => "BARISTA",
-            "kho1" => "INVENTORY_STAFF",
-            "manager1" => "BRANCH_MANAGER",
-            _ => "CASHIER"
-        });
+        // Tải danh sách các phân công chi nhánh đang hoạt động của người dùng
+        var userAssignments = await _db.UserRoleBranchAssignments
+            .Include(a => a.Role)
+            .Include(a => a.Branch)
+            .Where(a => a.UserId == user.UserId && a.IsActive)
+            .ToListAsync();
 
-        string roleName = role?.RoleName ?? (roleCode switch
+        // 1. Kiểm tra vai trò Chủ chuỗi / Admin (OWNER) -> Toàn quyền trên mọi chi nhánh
+        bool isOwner = userAssignments.Any(a => a.Role?.RoleCode == "OWNER") 
+                       || string.Equals(trimmedUser, "admin", StringComparison.OrdinalIgnoreCase);
+
+        Role? activeRole = null;
+        if (isOwner)
+        {
+            // Với Owner, cho phép truy cập bất kỳ chi nhánh nào đã chọn
+            activeRole = userAssignments.FirstOrDefault(a => a.Role?.RoleCode == "OWNER")?.Role 
+                         ?? await _db.Roles.FirstOrDefaultAsync(r => r.RoleCode == "OWNER");
+        }
+        else
+        {
+            // 2. Với các vai trò nhân viên khác -> BẮT BUỘC phải có phân công tại chi nhánh đã chọn
+            var validAssignment = userAssignments.FirstOrDefault(a => a.BranchId == branch.BranchId);
+            if (validAssignment == null)
+            {
+                var assignedBranchNames = userAssignments
+                    .Where(a => a.Branch != null)
+                    .Select(a => a.Branch!.BranchName)
+                    .Distinct()
+                    .ToList();
+
+                string assignedInfo = assignedBranchNames.Count > 0
+                    ? string.Join(", ", assignedBranchNames)
+                    : "Chưa được phân công chi nhánh nào";
+
+                throw new InvalidOperationException(
+                    $"Nhân viên '{user.Employee?.FullName ?? user.Username}' chỉ được phân công làm việc tại: [{assignedInfo}].\n" +
+                    $"Bạn không có quyền đăng nhập vào '{branch.BranchName}'!");
+            }
+
+            activeRole = validAssignment.Role;
+        }
+
+        string roleCode = activeRole?.RoleCode ?? (isOwner ? "OWNER" : "CASHIER");
+        string roleName = activeRole?.RoleName ?? (roleCode switch
         {
             "OWNER" => "Chủ chuỗi / Admin",
             "BRANCH_MANAGER" => "Quản lý chi nhánh",
@@ -198,20 +213,12 @@ public class AuthenticationService : IAuthenticationService
             _ => "Nhân viên"
         });
 
-        string fullName = user?.Employee?.FullName ?? (trimmedUser.ToLower() switch
-        {
-            "admin" => "Nguyễn Văn Admin",
-            "cashier1" => "Trần Thị Thu Ngân",
-            "barista1" => "Lê Pha Chế",
-            "kho1" => "Phạm Thủ Kho",
-            "manager1" => "Hoàng Quản Lý",
-            _ => trimmedUser
-        });
+        string fullName = user.Employee?.FullName ?? (isOwner ? "Nguyễn Văn Admin" : trimmedUser);
 
         return new UserSession
         {
-            UserId = user?.UserId ?? 1,
-            Username = user?.Username ?? trimmedUser,
+            UserId = user.UserId,
+            Username = user.Username,
             FullName = fullName,
             RoleCode = roleCode,
             RoleName = roleName,

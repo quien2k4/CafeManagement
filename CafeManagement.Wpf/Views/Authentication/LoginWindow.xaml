@@ -45,7 +45,7 @@
                 <ComboBox Name="CboBranches" DisplayMemberPath="BranchName" Height="40" FontSize="13" VerticalContentAlignment="Center" Margin="0,0,0,14" BorderBrush="#E2E8F0"/>
 
                 <!-- Thông báo lỗi (nếu có) -->
-                <TextBlock Name="TxtError" Text="" Foreground="#E53E3E" FontSize="12" FontWeight="SemiBold" TextAlignment="Center" Margin="0,0,0,10" Visibility="Collapsed"/>
+                <TextBlock Name="TxtError" Text="" Foreground="#E53E3E" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,10" Visibility="Collapsed"/>
 
                 <!-- Nút Đăng nhập -->
                 <Button Name="BtnLogin" Content="ĐĂNG NHẬP VÀO HỆ THỐNG ➔" Click="BtnLogin_Click" IsDefault="True" Height="46" 

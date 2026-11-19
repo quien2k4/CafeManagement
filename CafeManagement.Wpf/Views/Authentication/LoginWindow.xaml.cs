@@ -107,15 +107,22 @@ public partial class LoginWindow : Window
             DialogResult = true;
             Close();
         }
+        catch (System.Net.Http.HttpRequestException httpEx) when (httpEx.StatusCode.HasValue)
+        {
+            TxtError.Text = $"⚠️ {httpEx.Message}";
+            TxtError.Visibility = Visibility.Visible;
+            BtnLogin.IsEnabled = true;
+            BtnLogin.Content = "ĐĂNG NHẬP VÀO HỆ THỐNG ➔";
+        }
         catch (Exception ex)
         {
-            if (ex is System.Net.Http.HttpRequestException || ex.Message.Contains("refused") || ex.Message.Contains("kết nối"))
+            if (ex.Message.Contains("refused") || ex.Message.Contains("kết nối") || ex.InnerException is System.Net.Sockets.SocketException)
             {
                 TxtError.Text = "⚠️ Không thể kết nối tới máy chủ API (http://localhost:5000).\nVui lòng kiểm tra và khởi động CafeManagement.Api!";
             }
             else
             {
-                TxtError.Text = $"Lỗi đăng nhập: {ex.Message}";
+                TxtError.Text = $"⚠️ {ex.Message}";
             }
             TxtError.Visibility = Visibility.Visible;
             BtnLogin.IsEnabled = true;

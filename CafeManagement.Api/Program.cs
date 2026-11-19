@@ -36,6 +36,7 @@ builder.Services.AddScoped<IKdsService, KdsService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IRefundService, RefundService>();
 
 // Cấu hình Controllers và tuần tự hóa JSON tránh vòng lặp tham chiếu
 builder.Services.AddControllers()
@@ -73,5 +74,34 @@ app.MapControllers();
 
 // Health check endpoint
 app.MapGet("/", () => Results.Ok(new { status = "Healthy", service = "CafeManagement.Api", time = DateTime.UtcNow }));
+
+// Đảm bảo cấu trúc CSDL mở rộng luôn sẵn sàng khi API khởi động
+try
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<CafeDbContext>();
+    db.Database.ExecuteSqlRaw(@"
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'OrderRefunds')
+        BEGIN
+            CREATE TABLE dbo.OrderRefunds (
+                RefundId BIGINT IDENTITY(1,1) PRIMARY KEY,
+                OrderId BIGINT NOT NULL,
+                PaymentId BIGINT NULL,
+                RefundAmount DECIMAL(18,2) NOT NULL,
+                RefundMethod VARCHAR(20) NOT NULL DEFAULT 'CASH',
+                RefundReason NVARCHAR(255) NOT NULL,
+                Status VARCHAR(20) NOT NULL DEFAULT 'COMPLETED',
+                ProcessedByUserId INT NOT NULL DEFAULT 1,
+                ProcessedByName NVARCHAR(100) NOT NULL DEFAULT '',
+                RefundedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
+                CONSTRAINT FK_OrderRefunds_Orders FOREIGN KEY (OrderId) REFERENCES dbo.Orders(OrderId) ON DELETE CASCADE
+            );
+        END
+    ");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"[DB INIT] Lỗi kiểm tra cấu trúc bảng: {ex.Message}");
+}
 
 app.Run();

@@ -1485,13 +1485,16 @@ public partial class MainViewModel : ObservableObject
 
                 _allReportOrders = report.Orders.Select(o => new OrderReportItemViewModel
                 {
+                    OrderId = o.OrderId,
                     OrderNumber = o.OrderNumber,
                     CreatedAt = o.CreatedAt.ToLocalTime(),
                     CashierName = o.CashierName,
                     BranchName = o.BranchName,
                     PaymentMethod = o.PaymentMethod,
                     ItemsSummary = o.ItemsSummary,
-                    FinalAmount = o.FinalAmount
+                    FinalAmount = o.FinalAmount,
+                    OrderStatus = o.OrderStatus,
+                    RefundedAmount = o.RefundedAmount
                 }).ToList();
 
                 ApplyOrderReportFilter();
@@ -1536,6 +1539,55 @@ public partial class MainViewModel : ObservableObject
             _ => "Tất cả hình thức"
         };
         ApplyOrderReportFilter();
+    }
+
+    [RelayCommand]
+    public async Task OpenRefundDialogAsync(OrderReportItemViewModel? orderItem)
+    {
+        if (orderItem == null) return;
+        if (!orderItem.CanRefund)
+        {
+            MessageBox.Show("Đơn hàng này đã được hoàn tiền hoặc đã bị hủy, không thể thực hiện hoàn tiền!", "Cảnh Báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            var fullOrder = await OrderApiClient.Instance.GetOrderByIdAsync(orderItem.OrderId);
+            var dlg = new RefundOrderWindow(orderItem, fullOrder, CurrentSession.UserId, CurrentSession.FullName);
+            if (Application.Current?.MainWindow != null)
+            {
+                dlg.Owner = Application.Current.MainWindow;
+            }
+
+            if (dlg.ShowDialog() == true && dlg.ResultRequest != null)
+            {
+                dlg.ResultRequest.ProcessedByUserId = CurrentSession.UserId;
+                dlg.ResultRequest.ProcessedByName = CurrentSession.FullName;
+
+                var res = await RefundApiClient.Instance.CreateRefundAsync(dlg.ResultRequest);
+                if (res != null)
+                {
+                    MessageBox.Show($"🎉 Đã hoàn tiền thành công {res.RefundAmount:N0} đ cho đơn hàng {orderItem.OrderNumber}!\n• Hình thức hoàn: {res.RefundMethod}\n• Lý do: {res.RefundReason}", 
+                                    "Hoàn Tiền Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    await LoadReportDataAsync();
+
+                    if (CurrentSession.BranchId > 0)
+                    {
+                        CurrentShift = await ShiftApiClient.Instance.GetCurrentOpenShiftAsync(CurrentSession.BranchId);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Thực hiện hoàn tiền thất bại!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi thực hiện hoàn tiền: {ex.Message}", "Lỗi Hoàn Tiền", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     // ==================== 6. QUẢN LÝ MÓN NƯỚC, GIÁ & CÔNG THỨC PHA CHẾ (BOM) ====================

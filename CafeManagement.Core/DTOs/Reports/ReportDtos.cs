@@ -11,6 +11,7 @@ public class TopProductStatDto
 
 public class OrderReportDto
 {
+    public long OrderId { get; set; }
     public string OrderNumber { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public string CashierName { get; set; } = string.Empty;
@@ -18,6 +19,8 @@ public class OrderReportDto
     public string PaymentMethod { get; set; } = "CASH";
     public string ItemsSummary { get; set; } = string.Empty;
     public decimal FinalAmount { get; set; }
+    public string OrderStatus { get; set; } = "PAID";
+    public decimal RefundedAmount { get; set; } = 0;
 }
 
 public class DashboardReportDto

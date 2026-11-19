@@ -28,6 +28,7 @@ public class CafeDbContext : DbContext
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Promotion> Promotions => Set<Promotion>();
     public DbSet<WorkShift> WorkShifts => Set<WorkShift>();
+    public DbSet<OrderRefund> OrderRefunds => Set<OrderRefund>();
 
     public CafeDbContext(DbContextOptions<CafeDbContext> options) : base(options)
     {
@@ -71,5 +72,11 @@ public class CafeDbContext : DbContext
             .HasOne(it => it.Ingredient)
             .WithMany()
             .HasForeignKey(it => it.IngredientId);
+
+        modelBuilder.Entity<OrderRefund>()
+            .HasOne(r => r.Order)
+            .WithMany(o => o.Refunds)
+            .HasForeignKey(r => r.OrderId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

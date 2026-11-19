@@ -315,6 +315,7 @@ public class Order
 
     public List<OrderItem> Items { get; set; } = [];
     public List<Payment> Payments { get; set; } = [];
+    public List<OrderRefund> Refunds { get; set; } = [];
 }
 
 [Table("OrderItems")]
@@ -428,6 +429,43 @@ public class OrderReceipt
     public decimal ChangeAmount { get; set; }
 
     public string? ReceiptSnapshotJson { get; set; }
+}
+
+[Table("OrderRefunds")]
+public class OrderRefund
+{
+    [Key]
+    public long RefundId { get; set; }
+
+    public long OrderId { get; set; }
+
+    public long? PaymentId { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal RefundAmount { get; set; }
+
+    [MaxLength(20)]
+    public string RefundMethod { get; set; } = "CASH"; // CASH, VIETQR, ORIGINAL
+
+    [Required]
+    [MaxLength(255)]
+    public string RefundReason { get; set; } = string.Empty;
+
+    [MaxLength(20)]
+    public string Status { get; set; } = "COMPLETED"; // PENDING, COMPLETED, REJECTED
+
+    public int ProcessedByUserId { get; set; }
+
+    [MaxLength(100)]
+    public string ProcessedByName { get; set; } = string.Empty;
+
+    public DateTime RefundedAt { get; set; } = DateTime.UtcNow;
+
+    [ForeignKey(nameof(OrderId))]
+    public Order? Order { get; set; }
+
+    [ForeignKey(nameof(PaymentId))]
+    public Payment? Payment { get; set; }
 }
 
 [Table("UserAccounts")]

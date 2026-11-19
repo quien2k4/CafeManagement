@@ -35,4 +35,9 @@ public class OrderApiClient
         var list = await _api.GetAsync<List<OrderDto>>(url);
         return list ?? [];
     }
+
+    public async Task<OrderDto?> GetOrderByIdAsync(long id)
+    {
+        return await _api.GetAsync<OrderDto>($"/api/orders/{id}");
+    }
 }

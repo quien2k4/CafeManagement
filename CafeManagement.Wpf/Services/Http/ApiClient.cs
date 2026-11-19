@@ -63,7 +63,7 @@ public class ApiClient
             if (!response.IsSuccessStatusCode)
             {
                 string error = await response.Content.ReadAsStringAsync();
-                throw new HttpRequestException(ParseErrorMessage(error, response.StatusCode.ToString()));
+                throw new HttpRequestException(ParseErrorMessage(error, response.StatusCode.ToString()), null, response.StatusCode);
             }
             return await response.Content.ReadFromJsonAsync<TResponse>(_jsonOptions);
         }
@@ -81,7 +81,7 @@ public class ApiClient
             if (!response.IsSuccessStatusCode)
             {
                 string error = await response.Content.ReadAsStringAsync();
-                throw new HttpRequestException(ParseErrorMessage(error, response.StatusCode.ToString()));
+                throw new HttpRequestException(ParseErrorMessage(error, response.StatusCode.ToString()), null, response.StatusCode);
             }
             return true;
         }
@@ -99,7 +99,7 @@ public class ApiClient
             if (!response.IsSuccessStatusCode)
             {
                 string error = await response.Content.ReadAsStringAsync();
-                throw new HttpRequestException(ParseErrorMessage(error, response.StatusCode.ToString()));
+                throw new HttpRequestException(ParseErrorMessage(error, response.StatusCode.ToString()), null, response.StatusCode);
             }
             return await response.Content.ReadFromJsonAsync<TResponse>(_jsonOptions);
         }
@@ -117,7 +117,7 @@ public class ApiClient
             if (!response.IsSuccessStatusCode)
             {
                 string error = await response.Content.ReadAsStringAsync();
-                throw new HttpRequestException(ParseErrorMessage(error, response.StatusCode.ToString()));
+                throw new HttpRequestException(ParseErrorMessage(error, response.StatusCode.ToString()), null, response.StatusCode);
             }
             return true;
         }

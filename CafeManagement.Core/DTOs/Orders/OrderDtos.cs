@@ -59,4 +59,32 @@ public class OrderDto
     public DateTime CreatedAt { get; set; }
     public int PointsEarned { get; set; }
     public int PointsUsed { get; set; }
+    public List<OrderItemDto> Items { get; set; } = [];
+}
+
+public class OrderItemDto
+{
+    public long OrderItemId { get; set; }
+    public int VariantId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public string Size { get; set; } = "M";
+    public int Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal SubTotal { get; set; }
+    public string SugarLevel { get; set; } = "100%";
+    public string IceLevel { get; set; } = "100%";
+    public string Note { get; set; } = string.Empty;
+    public List<OrderItemToppingDto> Toppings { get; set; } = [];
+
+    public string ToppingsSummary => Toppings.Count > 0 
+        ? string.Join(", ", Toppings.Select(t => $"+{t.ToppingName} x{t.Quantity}")) 
+        : string.Empty;
+}
+
+public class OrderItemToppingDto
+{
+    public int ToppingId { get; set; }
+    public string ToppingName { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
 }

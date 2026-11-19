@@ -248,6 +248,12 @@ public class OrderService : IOrderService
             .Include(x => x.Branch)
             .Include(x => x.Customer)
             .Include(x => x.Payments)
+            .Include(x => x.Items)
+                .ThenInclude(i => i.Variant)
+                    .ThenInclude(v => v!.Product)
+            .Include(x => x.Items)
+                .ThenInclude(i => i.Toppings)
+                    .ThenInclude(t => t.Topping)
             .FirstOrDefaultAsync(x => x.OrderId == id);
 
         if (o == null) return null;
@@ -270,7 +276,27 @@ public class OrderService : IOrderService
             PaymentMethod = o.Payments.FirstOrDefault()?.PaymentMethod ?? "CASH",
             CreatedAt = o.CreatedAt,
             PointsEarned = o.PointsEarned,
-            PointsUsed = o.PointsUsed
+            PointsUsed = o.PointsUsed,
+            Items = o.Items.Select(i => new OrderItemDto
+            {
+                OrderItemId = i.OrderItemId,
+                VariantId = i.VariantId,
+                ProductName = i.Variant?.Product?.ProductName ?? "Sản phẩm",
+                Size = i.Variant?.Size ?? "M",
+                Quantity = i.Quantity,
+                UnitPrice = i.UnitPrice,
+                SubTotal = i.SubTotal,
+                SugarLevel = i.SugarLevel,
+                IceLevel = i.IceLevel,
+                Note = i.Note ?? string.Empty,
+                Toppings = i.Toppings.Select(t => new OrderItemToppingDto
+                {
+                    ToppingId = t.ToppingId,
+                    ToppingName = t.Topping?.ToppingName ?? "Topping",
+                    Quantity = t.Quantity,
+                    UnitPrice = t.UnitPrice
+                }).ToList()
+            }).ToList()
         };
     }
 
