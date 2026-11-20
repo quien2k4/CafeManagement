@@ -10,6 +10,7 @@ public class CafeDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
     public DbSet<Topping> Toppings => Set<Topping>();
+    public DbSet<ToppingRecipeDetail> ToppingRecipeDetails => Set<ToppingRecipeDetail>();
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
     public DbSet<BranchInventory> BranchInventories => Set<BranchInventory>();
     public DbSet<Recipe> Recipes => Set<Recipe>();
@@ -57,6 +58,16 @@ public class CafeDbContext : DbContext
             .HasOne(t => t.OrderItem)
             .WithMany(i => i.Toppings)
             .HasForeignKey(t => t.OrderItemId);
+
+        modelBuilder.Entity<ToppingRecipeDetail>()
+            .HasOne(trd => trd.Topping)
+            .WithMany(t => t.RecipeDetails)
+            .HasForeignKey(trd => trd.ToppingId);
+
+        modelBuilder.Entity<ToppingRecipeDetail>()
+            .HasOne(trd => trd.Ingredient)
+            .WithMany()
+            .HasForeignKey(trd => trd.IngredientId);
 
         modelBuilder.Entity<BranchInventory>()
             .HasOne(bi => bi.Ingredient)

@@ -16,9 +16,14 @@ public class ReportsController : ControllerBase
     }
 
     [HttpGet("dashboard")]
-    public async Task<ActionResult<DashboardReportDto>> GetDashboardReport([FromQuery] int? branchId, [FromQuery] string dateFilter = "ALL")
+    public async Task<ActionResult<DashboardReportDto>> GetDashboardReport(
+        [FromQuery] int? branchId, 
+        [FromQuery] string dateFilter = "ALL", 
+        [FromQuery] int days = 7,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null)
     {
-        var report = await _reportService.GetDashboardReportAsync(branchId, dateFilter);
+        var report = await _reportService.GetDashboardReportAsync(branchId, dateFilter, days, fromDate, toDate);
         return Ok(report);
     }
 }

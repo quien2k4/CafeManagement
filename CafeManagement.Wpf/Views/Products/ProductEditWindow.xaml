@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Thêm / Chỉnh Sửa Món Nước &amp; Bảng Giá" 
-        Height="580" Width="520"
+        Height="680" Width="550"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="#F8F9FA"
@@ -78,7 +78,59 @@
 
                     <!-- Mô tả món -->
                     <TextBlock Text="6. Mô tả món:" FontWeight="Bold" FontSize="13" Foreground="#495057" Margin="0,0,0,6"/>
-                    <TextBox Name="TxtDescription" Height="55" FontSize="13" Padding="8" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,0,0,14"/>
+                    <TextBox Name="TxtDescription" Height="50" FontSize="13" Padding="8" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,0,0,14"/>
+
+                    <!-- 7. Hình ảnh thực tế của món nước -->
+                    <TextBlock Text="7. Hình ảnh thực tế của món nước:" FontWeight="Bold" FontSize="13" Foreground="#495057" Margin="0,0,0,6"/>
+                    <Border Background="#F8F9FA" BorderBrush="#E9ECEF" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,14">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Khung xem trước ảnh Preview (100x100) -->
+                            <Border Grid.Column="0" Width="100" Height="100" CornerRadius="8" Background="#EDF2F7" BorderBrush="#CBD5E0" BorderThickness="1" Margin="0,0,14,0" ClipToBounds="True">
+                                <Grid>
+                                    <!-- Placeholder icon khi chưa có ảnh -->
+                                    <StackPanel x:Name="PnlPlaceholder" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <TextBlock Text="📷" FontSize="28" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Chưa có ảnh" FontSize="10" Foreground="#A0AEC0" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+
+                                    <!-- Image Preview thực tế -->
+                                    <Image x:Name="ImgPreview" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- Các nút thao tác và ô nhập link ảnh -->
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <Button Content="📁 Chọn ảnh từ máy..." Click="BtnBrowseImage_Click"
+                                            Height="32" Padding="10,0" Background="#3182CE" Foreground="White" FontWeight="Bold" FontSize="11" BorderThickness="0" Cursor="Hand" Margin="0,0,8,0">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="6"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+
+                                    <Button Content="✖️ Xóa ảnh" Click="BtnClearImage_Click"
+                                            Height="32" Padding="8,0" Background="#FFF5F5" Foreground="#E53E3E" BorderBrush="#FEB2B2" BorderThickness="1" FontWeight="SemiBold" FontSize="11" Cursor="Hand">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="6"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+                                </StackPanel>
+
+                                <TextBlock Text="Đường dẫn tệp hoặc liên kết URL ảnh:" FontSize="11" Foreground="#718096" Margin="0,0,0,3"/>
+                                <TextBox x:Name="TxtImageUrl" Height="30" FontSize="11" Padding="6,0" VerticalContentAlignment="Center" 
+                                         BorderBrush="#CBD5E0" TextChanged="TxtImageUrl_TextChanged"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
 
                     <!-- Trạng thái kinh doanh -->
                     <CheckBox Name="ChkIsActive" Content="Đang kinh doanh (Hiển thị trên màn hình POS bán hàng)" IsChecked="True" FontWeight="Bold" FontSize="13" Foreground="#2C3E50"/>

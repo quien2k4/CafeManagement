@@ -127,6 +127,30 @@ public class Topping
     public decimal Price { get; set; }
 
     public bool IsActive { get; set; } = true;
+
+    public List<ToppingRecipeDetail> RecipeDetails { get; set; } = [];
+}
+
+[Table("ToppingRecipeDetails")]
+public class ToppingRecipeDetail
+{
+    [Key]
+    public int ToppingRecipeDetailId { get; set; }
+
+    public int ToppingId { get; set; }
+    public int IngredientId { get; set; }
+
+    [Column(TypeName = "decimal(12,3)")]
+    public decimal Quantity { get; set; }
+
+    [MaxLength(20)]
+    public string Uom { get; set; } = "g";
+
+    [ForeignKey(nameof(ToppingId))]
+    public Topping? Topping { get; set; }
+
+    [ForeignKey(nameof(IngredientId))]
+    public Ingredient? Ingredient { get; set; }
 }
 
 [Table("Ingredients")]

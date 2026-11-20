@@ -171,7 +171,8 @@ public class OrderService : IOrderService
 
         await _db.SaveChangesAsync();
 
-        return new OrderDto
+        var createdDto = await GetOrderByIdAsync(order.OrderId);
+        return createdDto ?? new OrderDto
         {
             OrderId = order.OrderId,
             OrderNumber = order.OrderNumber,
@@ -258,6 +259,11 @@ public class OrderService : IOrderService
 
         if (o == null) return null;
 
+        var cashier = await _db.UserAccounts
+            .Include(u => u.Employee)
+            .FirstOrDefaultAsync(u => u.UserId == o.CashierUserId);
+        string cashierName = cashier?.Employee?.FullName ?? cashier?.Username ?? "Thu ngân";
+
         return new OrderDto
         {
             OrderId = o.OrderId,
@@ -265,6 +271,7 @@ public class OrderService : IOrderService
             BranchId = o.BranchId,
             BranchName = o.Branch?.BranchName ?? $"Chi nhánh #{o.BranchId}",
             CashierUserId = o.CashierUserId,
+            CashierName = cashierName,
             CustomerId = o.CustomerId,
             CustomerName = o.Customer?.FullName,
             PromotionCode = o.PromotionCode,
@@ -397,6 +404,48 @@ public class OrderService : IOrderService
                             Note = $"Xuất kho bán hàng đơn #{order.OrderNumber} ({item.Quantity}x {variant.Product?.ProductName ?? "Món"} - Size {variant.Size})",
                             CreatedAt = DateTime.UtcNow
                         });
+                    }
+                }
+
+                // Trừ nguyên liệu từ các Topping gắn kèm món (nếu có)
+                if (item.Toppings != null && item.Toppings.Count > 0)
+                {
+                    foreach (var topItem in item.Toppings)
+                    {
+                        var topping = await _db.Toppings
+                            .Include(t => t.RecipeDetails)
+                                .ThenInclude(rd => rd.Ingredient)
+                            .FirstOrDefaultAsync(t => t.ToppingId == topItem.ToppingId);
+
+                        if (topping != null && topping.RecipeDetails.Count > 0)
+                        {
+                            foreach (var trd in topping.RecipeDetails)
+                            {
+                                if (trd.Ingredient == null) continue;
+                                decimal totalToppingAmount = trd.Quantity * topItem.Quantity * item.Quantity;
+
+                                var stock = await _db.BranchInventories
+                                    .FirstOrDefaultAsync(bi => bi.BranchId == branchId && bi.IngredientId == trd.IngredientId);
+
+                                if (stock != null)
+                                {
+                                    stock.QuantityOnHand -= totalToppingAmount;
+                                    stock.UpdatedAt = DateTime.UtcNow;
+
+                                    _db.InventoryTransactions.Add(new InventoryTransaction
+                                    {
+                                        BranchId = branchId,
+                                        IngredientId = trd.IngredientId,
+                                        TransactionType = "SALE_CONSUMPTION",
+                                        QuantityChange = -totalToppingAmount,
+                                        BalanceAfter = stock.QuantityOnHand,
+                                        ReferenceId = order.OrderNumber,
+                                        Note = $"Xuất kho bán hàng đơn #{order.OrderNumber} ({item.Quantity * topItem.Quantity}x Topping {topping.ToppingName})",
+                                        CreatedAt = DateTime.UtcNow
+                                    });
+                                }
+                            }
+                        }
                     }
                 }
             }

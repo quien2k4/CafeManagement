@@ -271,7 +271,7 @@ public class RefundService : IRefundService
             // Xác định danh sách món cần hoàn kho:
             // Nếu người dùng tick chọn món cụ thể thì chỉ hoàn đúng các món đó.
             // Nếu danh sách món gửi lên trống, fallback hoàn tất cả các món trong đơn.
-            var itemsToProcess = new List<(int VariantId, int Quantity, string ProductName)>();
+            var itemsToProcess = new List<(int VariantId, int Quantity, string ProductName, List<OrderItemTopping> Toppings)>();
 
             if (reqItems != null && reqItems.Count > 0)
             {
@@ -286,14 +286,14 @@ public class RefundService : IRefundService
                         : (origItem?.Variant?.Product?.ProductName ?? "Món");
                     int qty = ri.Quantity > 0 ? ri.Quantity : 1;
 
-                    itemsToProcess.Add((variantId, qty, pName));
+                    itemsToProcess.Add((variantId, qty, pName, origItem?.Toppings?.ToList() ?? []));
                 }
             }
             else
             {
                 foreach (var oi in order.Items)
                 {
-                    itemsToProcess.Add((oi.VariantId, oi.Quantity, oi.Variant?.Product?.ProductName ?? "Món"));
+                    itemsToProcess.Add((oi.VariantId, oi.Quantity, oi.Variant?.Product?.ProductName ?? "Món", oi.Toppings?.ToList() ?? []));
                 }
             }
 
@@ -391,6 +391,48 @@ public class RefundService : IRefundService
                             Note = $"Hoàn nhập kho do hoàn tiền món {item.ProductName} ({item.Quantity}x) đơn #{order.OrderNumber} ({ing.IngredientName})",
                             CreatedAt = DateTime.UtcNow
                         });
+                    }
+                }
+
+                // Hoàn lại nguyên liệu từ các Topping đính kèm món (nếu có)
+                if (item.Toppings != null && item.Toppings.Count > 0)
+                {
+                    foreach (var topItem in item.Toppings)
+                    {
+                        var topping = await _db.Toppings
+                            .Include(t => t.RecipeDetails)
+                                .ThenInclude(rd => rd.Ingredient)
+                            .FirstOrDefaultAsync(t => t.ToppingId == topItem.ToppingId);
+
+                        if (topping != null && topping.RecipeDetails.Count > 0)
+                        {
+                            foreach (var trd in topping.RecipeDetails)
+                            {
+                                if (trd.Ingredient == null) continue;
+                                decimal totalToppingAmount = trd.Quantity * topItem.Quantity * item.Quantity;
+
+                                var stock = await _db.BranchInventories
+                                    .FirstOrDefaultAsync(bi => bi.BranchId == branchId && bi.IngredientId == trd.IngredientId);
+
+                                if (stock != null)
+                                {
+                                    stock.QuantityOnHand += totalToppingAmount;
+                                    stock.UpdatedAt = DateTime.UtcNow;
+
+                                    _db.InventoryTransactions.Add(new InventoryTransaction
+                                    {
+                                        BranchId = branchId,
+                                        IngredientId = trd.IngredientId,
+                                        TransactionType = "REFUND_RESTOCK",
+                                        QuantityChange = totalToppingAmount,
+                                        BalanceAfter = stock.QuantityOnHand,
+                                        ReferenceId = order.OrderNumber,
+                                        Note = $"Hoàn nhập kho do hoàn tiền món {item.ProductName} ({item.Quantity * topItem.Quantity}x Topping {topping.ToppingName}) đơn #{order.OrderNumber}",
+                                        CreatedAt = DateTime.UtcNow
+                                    });
+                                }
+                            }
+                        }
                     }
                 }
             }

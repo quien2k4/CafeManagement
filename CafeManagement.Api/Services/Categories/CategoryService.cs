@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using CafeManagement.Api.Data;
 using CafeManagement.Api.Services.Interfaces;
 using CafeManagement.Core.DTOs.Categories;
+using CafeManagement.Core.Models;
 
 namespace CafeManagement.Api.Services.Categories;
 
@@ -47,6 +48,57 @@ public class CategoryService : ICategoryService
             CategoryName = c.CategoryName,
             DisplayOrder = c.DisplayOrder,
             IsActive = c.IsActive
+        };
+    }
+
+    public async Task<CategoryDto> CreateCategoryAsync(CategoryCreateRequest req)
+    {
+        var code = req.CategoryCode.Trim().ToUpper();
+        var existing = await _db.ProductCategories.AnyAsync(c => c.CategoryCode == code);
+        if (existing)
+        {
+            throw new InvalidOperationException($"Mã danh mục '{code}' đã tồn tại!");
+        }
+
+        var cat = new ProductCategory
+        {
+            CategoryCode = code,
+            CategoryName = req.CategoryName.Trim(),
+            DisplayOrder = req.DisplayOrder,
+            IsActive = req.IsActive
+        };
+
+        _db.ProductCategories.Add(cat);
+        await _db.SaveChangesAsync();
+
+        return new CategoryDto
+        {
+            CategoryId = cat.CategoryId,
+            CategoryCode = cat.CategoryCode,
+            CategoryName = cat.CategoryName,
+            DisplayOrder = cat.DisplayOrder,
+            IsActive = cat.IsActive
+        };
+    }
+
+    public async Task<CategoryDto?> UpdateCategoryAsync(int id, CategoryUpdateRequest req)
+    {
+        var cat = await _db.ProductCategories.FirstOrDefaultAsync(c => c.CategoryId == id);
+        if (cat == null) return null;
+
+        cat.CategoryName = req.CategoryName.Trim();
+        cat.DisplayOrder = req.DisplayOrder;
+        cat.IsActive = req.IsActive;
+
+        await _db.SaveChangesAsync();
+
+        return new CategoryDto
+        {
+            CategoryId = cat.CategoryId,
+            CategoryCode = cat.CategoryCode,
+            CategoryName = cat.CategoryName,
+            DisplayOrder = cat.DisplayOrder,
+            IsActive = cat.IsActive
         };
     }
 }

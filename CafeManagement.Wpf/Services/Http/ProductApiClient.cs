@@ -36,6 +36,16 @@ public class ProductApiClient
         }).ToList();
     }
 
+    public async Task<CategoryDto?> CreateCategoryAsync(CategoryCreateRequest req)
+    {
+        return await _api.PostAsync<CategoryCreateRequest, CategoryDto>("/api/categories", req);
+    }
+
+    public async Task<CategoryDto?> UpdateCategoryAsync(int id, CategoryUpdateRequest req)
+    {
+        return await _api.PutAsync<CategoryUpdateRequest, CategoryDto>($"/api/categories/{id}", req);
+    }
+
     public async Task<List<Product>> GetProductsAsync(int? categoryId = null, bool activeOnly = false)
     {
         string url = $"/api/products?activeOnly={activeOnly}";
@@ -63,6 +73,22 @@ public class ProductApiClient
             Price = t.Price,
             IsActive = t.IsActive
         }).ToList();
+    }
+
+    public async Task<List<ToppingDto>> GetToppingDtosAsync(bool activeOnly = false)
+    {
+        var dtos = await _api.GetAsync<List<ToppingDto>>($"/api/products/toppings?activeOnly={activeOnly}");
+        return dtos ?? [];
+    }
+
+    public async Task<ToppingDto?> CreateToppingAsync(ToppingCreateRequest req)
+    {
+        return await _api.PostAsync<ToppingCreateRequest, ToppingDto>("/api/products/toppings", req);
+    }
+
+    public async Task<ToppingDto?> UpdateToppingAsync(int id, ToppingUpdateRequest req)
+    {
+        return await _api.PutAsync<ToppingUpdateRequest, ToppingDto>($"/api/products/toppings/{id}", req);
     }
 
     public async Task<Product?> CreateProductAsync(ProductCreateRequest req)

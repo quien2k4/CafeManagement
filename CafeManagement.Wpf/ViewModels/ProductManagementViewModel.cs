@@ -11,6 +11,7 @@ public partial class ProductManagementItemViewModel : ObservableObject
     public string CategoryName { get; set; } = string.Empty;
     public decimal BasePrice { get; set; }
     public string Description { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusBadge))]

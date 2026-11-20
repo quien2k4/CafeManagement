@@ -25,8 +25,12 @@
         <!-- Header: Tên món & Giá cơ bản -->
         <Border Grid.Row="0" Background="White" CornerRadius="10" Padding="15" Margin="0,0,0,15" BorderBrush="#E9ECEF" BorderThickness="1">
             <DockPanel>
-                <Border Width="50" Height="50" Background="#FFF3E0" CornerRadius="8" Margin="0,0,15,0">
-                    <TextBlock Text="☕" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <!-- Khung ảnh đại diện món thực tế -->
+                <Border Width="64" Height="64" Background="#F8FAFC" CornerRadius="10" Margin="0,0,15,0" ClipToBounds="True" BorderBrush="#E2E8F0" BorderThickness="1">
+                    <Grid>
+                        <TextBlock Text="☕" FontSize="30" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Image Source="{Binding Product.ImageUrl}" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
                 </Border>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="{Binding Product.ProductName}" FontWeight="Bold" FontSize="18" Foreground="#2C3E50"/>

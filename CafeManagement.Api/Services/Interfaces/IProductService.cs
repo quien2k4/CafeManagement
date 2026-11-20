@@ -11,4 +11,7 @@ public interface IProductService
     Task<ProductDto?> UpdateProductAsync(int id, ProductUpdateRequest req);
     Task<bool> ToggleProductActiveAsync(int id);
     Task<List<ToppingDto>> GetToppingsAsync(bool activeOnly = false);
+    Task<ToppingDto?> GetToppingByIdAsync(int id);
+    Task<ToppingDto> CreateToppingAsync(ToppingCreateRequest req);
+    Task<ToppingDto?> UpdateToppingAsync(int id, ToppingUpdateRequest req);
 }

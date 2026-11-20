@@ -29,4 +29,43 @@ public class CategoriesController : ControllerBase
         if (category == null) return NotFound(new { message = "Không tìm thấy danh mục!" });
         return Ok(category);
     }
+
+    [HttpPost]
+    public async Task<ActionResult<CategoryDto>> CreateCategory([FromBody] CategoryCreateRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.CategoryName))
+        {
+            return BadRequest(new { message = "Tên danh mục không được để trống!" });
+        }
+        if (string.IsNullOrWhiteSpace(req.CategoryCode))
+        {
+            return BadRequest(new { message = "Mã danh mục không được để trống!" });
+        }
+
+        try
+        {
+            var created = await _categoryService.CreateCategoryAsync(req);
+            return CreatedAtAction(nameof(GetCategoryById), new { id = created.CategoryId }, created);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<CategoryDto>> UpdateCategory(int id, [FromBody] CategoryUpdateRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.CategoryName))
+        {
+            return BadRequest(new { message = "Tên danh mục không được để trống!" });
+        }
+
+        var updated = await _categoryService.UpdateCategoryAsync(id, req);
+        if (updated == null)
+        {
+            return NotFound(new { message = "Không tìm thấy danh mục để cập nhật!" });
+        }
+        return Ok(updated);
+    }
 }

@@ -1,4 +1,8 @@
+using System.IO;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media.Imaging;
+using Microsoft.Win32;
 using CafeManagement.Core.Models;
 
 namespace CafeManagement.Wpf.Views.Products;
@@ -24,6 +28,7 @@ public partial class ProductEditWindow : Window
             TxtProductCode.Text = $"CF_{Random.Shared.Next(100, 999)}";
             TxtBasePrice.Text = "30000";
             TxtExtraPriceL.Text = "6000";
+            UpdateImagePreview(null);
         }
         else
         {
@@ -44,7 +49,102 @@ public partial class ProductEditWindow : Window
 
             var variantL = existing.Variants.FirstOrDefault(v => v.Size == "L");
             TxtExtraPriceL.Text = (variantL?.ExtraPrice ?? 6000).ToString("N0");
+
+            TxtImageUrl.Text = existing.ImageUrl ?? "";
+            UpdateImagePreview(existing.ImageUrl);
         }
+    }
+
+    private void UpdateImagePreview(string? pathOrUrl)
+    {
+        if (string.IsNullOrWhiteSpace(pathOrUrl))
+        {
+            ImgPreview.Source = null;
+            PnlPlaceholder.Visibility = Visibility.Visible;
+            return;
+        }
+
+        try
+        {
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+
+            if (Uri.TryCreate(pathOrUrl, UriKind.Absolute, out var uri))
+            {
+                bitmap.UriSource = uri;
+            }
+            else if (File.Exists(pathOrUrl))
+            {
+                bitmap.UriSource = new Uri(Path.GetFullPath(pathOrUrl));
+            }
+            else
+            {
+                ImgPreview.Source = null;
+                PnlPlaceholder.Visibility = Visibility.Visible;
+                return;
+            }
+
+            bitmap.EndInit();
+            ImgPreview.Source = bitmap;
+            PnlPlaceholder.Visibility = Visibility.Collapsed;
+        }
+        catch
+        {
+            ImgPreview.Source = null;
+            PnlPlaceholder.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void BtnBrowseImage_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var openDlg = new OpenFileDialog
+            {
+                Title = "Chọn hình ảnh thực tế của món nước",
+                Filter = "Tệp hình ảnh (*.png;*.jpg;*.jpeg;*.webp;*.bmp)|*.png;*.jpg;*.jpeg;*.webp;*.bmp|Tất cả tệp (*.*)|*.*",
+                Multiselect = false
+            };
+
+            if (openDlg.ShowDialog() == true)
+            {
+                string sourceFile = openDlg.FileName;
+                string productCode = TxtProductCode.Text.Trim();
+                if (string.IsNullOrEmpty(productCode)) productCode = "prod";
+
+                string imagesDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "ProductImages");
+                if (!Directory.Exists(imagesDir))
+                {
+                    Directory.CreateDirectory(imagesDir);
+                }
+
+                string ext = Path.GetExtension(sourceFile);
+                string destFileName = $"{productCode}_{DateTime.Now:yyyyMMdd_HHmmss}{ext}";
+                string destPath = Path.Combine(imagesDir, destFileName);
+
+                File.Copy(sourceFile, destPath, overwrite: true);
+
+                TxtImageUrl.Text = destPath;
+                UpdateImagePreview(destPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi khi tải hình ảnh: {ex.Message}", "Lỗi Hình Ảnh", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void BtnClearImage_Click(object sender, RoutedEventArgs e)
+    {
+        TxtImageUrl.Text = string.Empty;
+        ImgPreview.Source = null;
+        PnlPlaceholder.Visibility = Visibility.Visible;
+    }
+
+    private void TxtImageUrl_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        UpdateImagePreview(TxtImageUrl.Text.Trim());
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)
@@ -79,6 +179,7 @@ public partial class ProductEditWindow : Window
         }
 
         ExtraPriceSizeL = extraL;
+        string imageVal = TxtImageUrl.Text.Trim();
 
         if (IsNewProduct || ProductToSave == null)
         {
@@ -89,6 +190,7 @@ public partial class ProductEditWindow : Window
                 ProductName = name,
                 BasePrice = basePrice,
                 Description = TxtDescription.Text.Trim(),
+                ImageUrl = string.IsNullOrWhiteSpace(imageVal) ? null : imageVal,
                 IsActive = ChkIsActive.IsChecked == true
             };
 
@@ -117,6 +219,7 @@ public partial class ProductEditWindow : Window
             ProductToSave.ProductName = name;
             ProductToSave.BasePrice = basePrice;
             ProductToSave.Description = TxtDescription.Text.Trim();
+            ProductToSave.ImageUrl = string.IsNullOrWhiteSpace(imageVal) ? null : imageVal;
             ProductToSave.IsActive = ChkIsActive.IsChecked == true;
 
             var variantL = ProductToSave.Variants.FirstOrDefault(v => v.Size == "L");

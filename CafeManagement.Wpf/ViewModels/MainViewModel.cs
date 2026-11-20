@@ -29,6 +29,8 @@ using CafeManagement.Wpf.ViewModels.Employees;
 using CafeManagement.Wpf.ViewModels.Reports;
 using CafeManagement.Wpf.Views.Inventory;
 using CafeManagement.Wpf.Views.Employees;
+using CafeManagement.Wpf.Views.Orders;
+using CafeManagement.Wpf.Services.Printing;
 using System.Windows;
 
 namespace CafeManagement.Wpf.ViewModels;
@@ -317,6 +319,119 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private ObservableCollection<OrderReportItemViewModel> _reportRecentOrders = [];
+
+    [ObservableProperty]
+    private ObservableCollection<HourlySalesStatDto> _reportHourlySales = [];
+
+    private List<HourlySalesStatDto> _overallHourlySales = [];
+
+    [ObservableProperty]
+    private ObservableCollection<DailyRevenueStatDto> _reportWeeklySales = [];
+
+    [ObservableProperty]
+    private ObservableCollection<string> _reportYAxisTicks = [];
+
+    [ObservableProperty]
+    private HourlySalesStatDto? _selectedHourlySale;
+
+    [ObservableProperty]
+    private DailyRevenueStatDto? _selectedDailySale;
+
+    [ObservableProperty]
+    private int _chartDays = 7;
+
+    [ObservableProperty]
+    private string _chartDaysFilterText = "7 Ngày";
+
+    [ObservableProperty]
+    private DateTime _chartFromDate = DateTime.Today.AddDays(-6);
+
+    [ObservableProperty]
+    private DateTime _chartToDate = DateTime.Today;
+
+    [ObservableProperty]
+    private bool _isCustomDateActive;
+
+    [ObservableProperty]
+    private string _heatmapTitle = "🔥 BIỂU ĐỒ NHIỆT KHUNG GIỜ (06h - 23h)";
+
+    [ObservableProperty]
+    private bool _isViewingSpecificDay;
+
+    [RelayCommand]
+    public void SelectHour(HourlySalesStatDto hourStat)
+    {
+        SelectedHourlySale = hourStat;
+    }
+
+    [RelayCommand]
+    public void SelectDay(DailyRevenueStatDto dayStat)
+    {
+        if (dayStat == null) return;
+
+        foreach (var d in ReportWeeklySales)
+        {
+            d.IsSelected = (d == dayStat);
+        }
+        var temp = new ObservableCollection<DailyRevenueStatDto>(ReportWeeklySales);
+        ReportWeeklySales = temp;
+
+        SelectedDailySale = dayStat;
+        IsViewingSpecificDay = true;
+        HeatmapTitle = $"🔥 BIỂU ĐỒ NHIỆT NGÀY: {dayStat.DayOfWeekName.ToUpper()} ({dayStat.DateFormatted})";
+
+        ReportHourlySales = new ObservableCollection<HourlySalesStatDto>(dayStat.HourlySales);
+        SelectedHourlySale = dayStat.HourlySales.OrderByDescending(h => h.TotalCups).FirstOrDefault(h => h.TotalCups > 0)
+            ?? dayStat.HourlySales.FirstOrDefault();
+    }
+
+    [RelayCommand]
+    public void ResetToOverallHeatmap()
+    {
+        IsViewingSpecificDay = false;
+        SelectedDailySale = null;
+        foreach (var d in ReportWeeklySales)
+        {
+            d.IsSelected = false;
+        }
+        var temp = new ObservableCollection<DailyRevenueStatDto>(ReportWeeklySales);
+        ReportWeeklySales = temp;
+
+        HeatmapTitle = "🔥 BIỂU ĐỒ NHIỆT KHUNG GIỜ TOÀN BỘ ĐỢT (06h - 23h)";
+        ReportHourlySales = new ObservableCollection<HourlySalesStatDto>(_overallHourlySales);
+        SelectedHourlySale = _overallHourlySales.OrderByDescending(h => h.TotalCups).FirstOrDefault(h => h.TotalCups > 0)
+            ?? _overallHourlySales.FirstOrDefault();
+    }
+
+    [RelayCommand]
+    public async Task ApplyChartDateFilterAsync()
+    {
+        if (ChartFromDate > ChartToDate)
+        {
+            (ChartFromDate, ChartToDate) = (ChartToDate, ChartFromDate);
+        }
+
+        IsCustomDateActive = true;
+        ReportDateFilter = "CUSTOM";
+        ReportDateFilterText = $"📅 {ChartFromDate:dd/MM} - {ChartToDate:dd/MM}";
+        await LoadReportDataAsync();
+    }
+
+    [RelayCommand]
+    public async Task FilterChartDaysAsync(string daysStr)
+    {
+        if (int.TryParse(daysStr, out int days) && days > 0)
+        {
+            ChartDays = days;
+            ChartDaysFilterText = $"{days} Ngày";
+            ChartToDate = DateTime.Today;
+            ChartFromDate = DateTime.Today.AddDays(-(days - 1));
+            IsCustomDateActive = true;
+            ReportDateFilter = "CUSTOM";
+            ReportDateFilterText = $"📅 {ChartFromDate:dd/MM} - {ChartToDate:dd/MM}";
+            await LoadReportDataAsync();
+        }
+    }
 
     [ObservableProperty]
     private string _orderSearchKeyword = string.Empty;
@@ -758,15 +873,26 @@ public partial class MainViewModel : ObservableObject
                 string promoInfoStr = SelectedPromotion != null ? $"\n\n🎟️ ƯU ĐÃI: {SelectedPromotion.PromotionName} (-{VoucherDiscountAmount:N0} đ)" : "";
                 string customerInfoStr = SelectedCustomer != null ? $"\n\n👤 KHÁCH HÀNG: {SelectedCustomer.FullName} ({SelectedCustomer.PhoneNumber})" + (createdOrder.PointsEarned > 0 ? $"\n• Điểm tích lũy mới: +{createdOrder.PointsEarned} điểm" : "") : "";
 
-                MessageBox.Show(
+                var promptPrint = MessageBox.Show(
                     $"🎉 THANH TOÁN THÀNH CÔNG!\n\n" +
                     $"• Mã đơn: #{createdOrder.OrderNumber}\n" +
                     $"• Tổng thanh toán: {FinalAmount:N0} đ\n" +
                     $"• Hình thức: {methodStr}{changeStr}\n" +
                     $"• Biên nhận: REC_{createdOrder.OrderNumber}" +
                     promoInfoStr + customerInfoStr + "\n\n" +
-                    $"⚡ Đã tự động trừ nguyên liệu trong kho và đẩy sang Quầy Barista!",
-                    "Hoàn tất đơn hàng", MessageBoxButton.OK, MessageBoxImage.Information);
+                    $"⚡ Đã tự động trừ nguyên liệu trong kho!\n\n" +
+                    $"Bạn có muốn mở & in Phiếu Pha Chế (Barista Ticket) ngay không?",
+                    "Hoàn tất đơn hàng & In Phiếu", MessageBoxButton.YesNo, MessageBoxImage.Information);
+
+                if (promptPrint == MessageBoxResult.Yes)
+                {
+                    var ticketWnd = new KitchenTicketWindow(createdOrder);
+                    if (Application.Current?.MainWindow != null)
+                    {
+                        ticketWnd.Owner = Application.Current.MainWindow;
+                    }
+                    ticketWnd.ShowDialog();
+                }
 
                 SelectedCustomer = null;
                 SelectedPromotion = null;
@@ -1432,13 +1558,36 @@ public partial class MainViewModel : ObservableObject
     public async Task FilterReportByDate(string filter)
     {
         ReportDateFilter = filter;
-        ReportDateFilterText = filter switch
+        IsCustomDateActive = false;
+
+        switch (filter)
         {
-            "TODAY" => "Hôm nay",
-            "WEEK" => "7 ngày qua",
-            "MONTH" => "Tháng này",
-            _ => "Tất cả thời gian"
-        };
+            case "TODAY":
+                ReportDateFilterText = "Hôm nay";
+                ChartFromDate = DateTime.Today;
+                ChartToDate = DateTime.Today;
+                ChartDays = 1;
+                break;
+            case "WEEK":
+                ReportDateFilterText = "7 ngày qua";
+                ChartFromDate = DateTime.Today.AddDays(-6);
+                ChartToDate = DateTime.Today;
+                ChartDays = 7;
+                break;
+            case "MONTH":
+                ReportDateFilterText = "Tháng này";
+                ChartFromDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+                ChartToDate = DateTime.Today;
+                ChartDays = (DateTime.Today - ChartFromDate).Days + 1;
+                break;
+            default:
+                ReportDateFilterText = "Tất cả thời gian";
+                ChartFromDate = DateTime.Today.AddDays(-29);
+                ChartToDate = DateTime.Today;
+                ChartDays = 30;
+                break;
+        }
+
         await LoadReportDataAsync();
     }
 
@@ -1456,7 +1605,10 @@ public partial class MainViewModel : ObservableObject
         try
         {
             int? branchId = (ReportBranchFilter == "CURRENT" && CurrentSession.BranchId > 0) ? CurrentSession.BranchId : null;
-            var report = await ReportApiClient.Instance.GetDashboardReportAsync(branchId, ReportDateFilter);
+            DateTime? fDate = IsCustomDateActive ? ChartFromDate : null;
+            DateTime? tDate = IsCustomDateActive ? ChartToDate : null;
+
+            var report = await ReportApiClient.Instance.GetDashboardReportAsync(branchId, ReportDateFilter, ChartDays, fDate, tDate);
             if (report != null)
             {
                 ReportTotalOrders = report.TotalOrders;
@@ -1496,6 +1648,18 @@ public partial class MainViewModel : ObservableObject
                     OrderStatus = o.OrderStatus,
                     RefundedAmount = o.RefundedAmount
                 }).ToList();
+
+                _overallHourlySales = report.HourlySales;
+                ReportHourlySales = new ObservableCollection<HourlySalesStatDto>(report.HourlySales);
+                ReportWeeklySales = new ObservableCollection<DailyRevenueStatDto>(report.WeeklySales);
+                ReportYAxisTicks = new ObservableCollection<string>(report.YAxisTickLabels);
+
+                IsViewingSpecificDay = false;
+                SelectedDailySale = null;
+                HeatmapTitle = "🔥 BIỂU ĐỒ NHIỆT KHUNG GIỜ TOÀN BỘ ĐỢT (06h - 23h)";
+
+                SelectedHourlySale = report.HourlySales.OrderByDescending(h => h.TotalCups).FirstOrDefault(h => h.TotalCups > 0)
+                    ?? report.HourlySales.FirstOrDefault();
 
                 ApplyOrderReportFilter();
             }
@@ -1590,6 +1754,33 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    public async Task OpenKitchenTicketAsync(OrderReportItemViewModel? orderItem)
+    {
+        if (orderItem == null) return;
+
+        try
+        {
+            var fullOrder = await OrderApiClient.Instance.GetOrderByIdAsync(orderItem.OrderId);
+            if (fullOrder == null)
+            {
+                MessageBox.Show("Không tìm thấy thông tin chi tiết đơn hàng để in phiếu pha chế!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var ticketWnd = new KitchenTicketWindow(fullOrder);
+            if (Application.Current?.MainWindow != null)
+            {
+                ticketWnd.Owner = Application.Current.MainWindow;
+            }
+            ticketWnd.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi mở phiếu pha chế: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     // ==================== 6. QUẢN LÝ MÓN NƯỚC, GIÁ & CÔNG THỨC PHA CHẾ (BOM) ====================
     private List<ProductManagementItemViewModel> _allManagedProducts = [];
 
@@ -1611,6 +1802,7 @@ public partial class MainViewModel : ObservableObject
                 CategoryName = p.Category?.CategoryName ?? "Khác",
                 BasePrice = p.BasePrice,
                 Description = p.Description ?? "",
+                ImageUrl = p.ImageUrl,
                 IsActive = p.IsActive,
                 VariantsDisplay = string.Join(" | ", p.Variants.OrderBy(v => v.Size).Select(v => $"Size {v.Size}: +{v.ExtraPrice:N0} đ")),
                 Product = p
@@ -1636,6 +1828,49 @@ public partial class MainViewModel : ObservableObject
         {
             ManagedProducts = new ObservableCollection<ProductManagementItemViewModel>(
                 _allManagedProducts.Where(p => p.Product.CategoryId == cat.CategoryId));
+        }
+    }
+
+    [RelayCommand]
+    public async Task OpenAddCategoryDialogAsync()
+    {
+        try
+        {
+            var dlg = new CategoryEditWindow();
+            if (Application.Current?.MainWindow != null)
+            {
+                dlg.Owner = Application.Current.MainWindow;
+            }
+
+            if (dlg.ShowDialog() == true)
+            {
+                await LoadDataAsync();
+                await LoadManagementProductsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi thêm danh mục: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
+    public async Task OpenToppingManagementDialogAsync()
+    {
+        try
+        {
+            var dlg = new ToppingManagementWindow();
+            if (Application.Current?.MainWindow != null)
+            {
+                dlg.Owner = Application.Current.MainWindow;
+            }
+
+            dlg.ShowDialog();
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi quản lý Topping: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

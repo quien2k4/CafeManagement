@@ -18,14 +18,27 @@ public class ReportApiClient
         _api = api;
     }
 
-    public async Task<DashboardReportDto?> GetDashboardReportAsync(int? branchId = null, string dateFilter = "ALL")
+    public async Task<DashboardReportDto?> GetDashboardReportAsync(
+        int? branchId = null, 
+        string dateFilter = "ALL", 
+        int days = 7,
+        DateTime? fromDate = null,
+        DateTime? toDate = null)
     {
         try
         {
-            string url = $"/api/reports/dashboard?dateFilter={Uri.EscapeDataString(dateFilter)}";
+            string url = $"/api/reports/dashboard?dateFilter={Uri.EscapeDataString(dateFilter)}&days={days}";
             if (branchId.HasValue && branchId.Value > 0)
             {
                 url += $"&branchId={branchId.Value}";
+            }
+            if (fromDate.HasValue)
+            {
+                url += $"&fromDate={fromDate.Value:yyyy-MM-dd}";
+            }
+            if (toDate.HasValue)
+            {
+                url += $"&toDate={toDate.Value:yyyy-MM-dd}";
             }
             return await _api.GetAsync<DashboardReportDto>(url);
         }

@@ -85,4 +85,62 @@ public class ProductsController : ControllerBase
         var list = await _productService.GetToppingsAsync(activeOnly);
         return Ok(list);
     }
+
+    [HttpGet("toppings/{id:int}")]
+    [HttpGet("/api/toppings/{id:int}")]
+    public async Task<ActionResult<ToppingDto>> GetToppingById(int id)
+    {
+        var topping = await _productService.GetToppingByIdAsync(id);
+        if (topping == null) return NotFound(new { message = "Không tìm thấy Topping!" });
+        return Ok(topping);
+    }
+
+    [HttpPost("toppings")]
+    [HttpPost("/api/toppings")]
+    public async Task<ActionResult<ToppingDto>> CreateTopping([FromBody] ToppingCreateRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.ToppingName))
+        {
+            return BadRequest(new { message = "Tên Topping không được để trống!" });
+        }
+        if (string.IsNullOrWhiteSpace(req.ToppingCode))
+        {
+            return BadRequest(new { message = "Mã Topping không được để trống!" });
+        }
+
+        try
+        {
+            var created = await _productService.CreateToppingAsync(req);
+            return CreatedAtAction(nameof(GetToppingById), new { id = created.ToppingId }, created);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = $"Lỗi khi tạo Topping: {ex.Message}" });
+        }
+    }
+
+    [HttpPut("toppings/{id:int}")]
+    [HttpPut("/api/toppings/{id:int}")]
+    public async Task<ActionResult<ToppingDto>> UpdateTopping(int id, [FromBody] ToppingUpdateRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.ToppingName))
+        {
+            return BadRequest(new { message = "Tên Topping không được để trống!" });
+        }
+
+        try
+        {
+            var updated = await _productService.UpdateToppingAsync(id, req);
+            if (updated == null) return NotFound(new { message = "Không tìm thấy Topping để cập nhật!" });
+            return Ok(updated);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = $"Lỗi khi cập nhật Topping: {ex.Message}" });
+        }
+    }
 }

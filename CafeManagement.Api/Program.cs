@@ -97,6 +97,19 @@ try
                 CONSTRAINT FK_OrderRefunds_Orders FOREIGN KEY (OrderId) REFERENCES dbo.Orders(OrderId) ON DELETE CASCADE
             );
         END
+
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ToppingRecipeDetails')
+        BEGIN
+            CREATE TABLE dbo.ToppingRecipeDetails (
+                ToppingRecipeDetailId INT IDENTITY(1,1) PRIMARY KEY,
+                ToppingId INT NOT NULL,
+                IngredientId INT NOT NULL,
+                Quantity DECIMAL(12,3) NOT NULL,
+                Uom NVARCHAR(20) NOT NULL DEFAULT 'g',
+                CONSTRAINT FK_TRD_Toppings FOREIGN KEY (ToppingId) REFERENCES dbo.Toppings(ToppingId) ON DELETE CASCADE,
+                CONSTRAINT FK_TRD_Ingredients FOREIGN KEY (IngredientId) REFERENCES dbo.Ingredients(IngredientId)
+            );
+        END
     ");
 }
 catch (Exception ex)

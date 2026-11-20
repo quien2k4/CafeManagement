@@ -145,23 +145,105 @@ public class ProductService : IProductService
 
     public async Task<List<ToppingDto>> GetToppingsAsync(bool activeOnly = false)
     {
-        var query = _db.Toppings.AsNoTracking();
+        var query = _db.Toppings
+            .Include(t => t.RecipeDetails)
+                .ThenInclude(rd => rd.Ingredient)
+            .AsNoTracking();
+
         if (activeOnly)
         {
             query = query.Where(t => t.IsActive);
         }
 
-        return await query
-            .OrderBy(t => t.ToppingId)
-            .Select(t => new ToppingDto
+        var list = await query.OrderBy(t => t.ToppingId).ToListAsync();
+        return list.Select(MapToppingToDto).ToList();
+    }
+
+    public async Task<ToppingDto?> GetToppingByIdAsync(int id)
+    {
+        var t = await _db.Toppings
+            .Include(t => t.RecipeDetails)
+                .ThenInclude(rd => rd.Ingredient)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.ToppingId == id);
+
+        return t == null ? null : MapToppingToDto(t);
+    }
+
+    public async Task<ToppingDto> CreateToppingAsync(ToppingCreateRequest req)
+    {
+        var code = req.ToppingCode.Trim().ToUpper();
+        var exists = await _db.Toppings.AnyAsync(t => t.ToppingCode == code);
+        if (exists)
+        {
+            throw new InvalidOperationException($"Mã Topping '{code}' đã tồn tại!");
+        }
+
+        var topping = new Topping
+        {
+            ToppingCode = code,
+            ToppingName = req.ToppingName.Trim(),
+            Price = req.Price,
+            IsActive = req.IsActive,
+            RecipeDetails = req.RecipeDetails.Select(d => new ToppingRecipeDetail
             {
-                ToppingId = t.ToppingId,
-                ToppingCode = t.ToppingCode,
-                ToppingName = t.ToppingName,
-                Price = t.Price,
-                IsActive = t.IsActive
-            })
-            .ToListAsync();
+                IngredientId = d.IngredientId,
+                Quantity = d.Quantity,
+                Uom = string.IsNullOrWhiteSpace(d.Uom) ? "g" : d.Uom.Trim()
+            }).ToList()
+        };
+
+        _db.Toppings.Add(topping);
+        await _db.SaveChangesAsync();
+
+        return await GetToppingByIdAsync(topping.ToppingId) ?? MapToppingToDto(topping);
+    }
+
+    public async Task<ToppingDto?> UpdateToppingAsync(int id, ToppingUpdateRequest req)
+    {
+        var topping = await _db.Toppings
+            .Include(t => t.RecipeDetails)
+            .FirstOrDefaultAsync(t => t.ToppingId == id);
+
+        if (topping == null) return null;
+
+        topping.ToppingName = req.ToppingName.Trim();
+        topping.Price = req.Price;
+        topping.IsActive = req.IsActive;
+
+        _db.ToppingRecipeDetails.RemoveRange(topping.RecipeDetails);
+        topping.RecipeDetails = req.RecipeDetails.Select(d => new ToppingRecipeDetail
+        {
+            ToppingId = id,
+            IngredientId = d.IngredientId,
+            Quantity = d.Quantity,
+            Uom = string.IsNullOrWhiteSpace(d.Uom) ? "g" : d.Uom.Trim()
+        }).ToList();
+
+        await _db.SaveChangesAsync();
+        return await GetToppingByIdAsync(id);
+    }
+
+    private static ToppingDto MapToppingToDto(Topping t)
+    {
+        return new ToppingDto
+        {
+            ToppingId = t.ToppingId,
+            ToppingCode = t.ToppingCode,
+            ToppingName = t.ToppingName,
+            Price = t.Price,
+            IsActive = t.IsActive,
+            RecipeDetails = t.RecipeDetails.Select(rd => new ToppingRecipeDetailDto
+            {
+                ToppingRecipeDetailId = rd.ToppingRecipeDetailId,
+                ToppingId = rd.ToppingId,
+                IngredientId = rd.IngredientId,
+                IngredientCode = rd.Ingredient?.IngredientCode ?? string.Empty,
+                IngredientName = rd.Ingredient?.IngredientName ?? string.Empty,
+                Quantity = rd.Quantity,
+                Uom = rd.Uom
+            }).ToList()
+        };
     }
 
     private static ProductDto MapToDto(Product p)

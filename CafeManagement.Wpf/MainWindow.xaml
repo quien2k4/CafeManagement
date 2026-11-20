@@ -366,21 +366,24 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Width="200" Height="220" Margin="0,0,15,15" Background="White" CornerRadius="12"
+                            <Border Width="200" Height="245" Margin="0,0,15,15" Background="White" CornerRadius="12"
                                     BorderBrush="#E8ECEF" BorderThickness="1">
                                 <Border.Effect>
                                     <DropShadowEffect BlurRadius="8" Opacity="0.05" Direction="270" ShadowDepth="2"/>
                                 </Border.Effect>
                                 <Grid>
                                     <Grid.RowDefinitions>
-                                        <RowDefinition Height="100" />
+                                        <RowDefinition Height="125" />
                                         <RowDefinition Height="*" />
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
                                     <!-- Ảnh / Icon minh họa món -->
-                                    <Border Grid.Row="0" Background="#FFF3E0" CornerRadius="12,12,0,0">
-                                        <TextBlock Text="☕" FontSize="45" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <Border Grid.Row="0" Background="#F8FAFC" CornerRadius="12,12,0,0" ClipToBounds="True">
+                                        <Grid>
+                                            <TextBlock Text="☕" FontSize="42" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <Image Source="{Binding ImageUrl}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="6"/>
+                                        </Grid>
                                     </Border>
 
                                     <!-- Thông tin món -->
@@ -1381,12 +1384,15 @@
         </Grid>
 
         <!-- ==================== GIAO DIỆN 4: MÀN HÌNH BÁO CÁO DOANH THU & THỐNG KÊ (REPORT) ==================== -->
-        <Grid Grid.Column="1" Grid.ColumnSpan="2" Margin="25" Visibility="{Binding IsReportView, Converter={StaticResource BoolToVis}}">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" /> <!-- Header & Bộ lọc thời gian/chi nhánh -->
-                <RowDefinition Height="Auto" /> <!-- 4 Thẻ KPI Thống Kê Tổng Quan -->
-                <RowDefinition Height="*" />    <!-- Bố cục 2 cột: Top Món & Nhật Ký Hóa Đơn -->
-            </Grid.RowDefinitions>
+        <ScrollViewer Grid.Column="1" Grid.ColumnSpan="2" Margin="25,20,20,20" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="{Binding IsReportView, Converter={StaticResource BoolToVis}}">
+            <Grid Margin="0,0,10,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" /> <!-- 1. Header & Bộ lọc thời gian/chi nhánh -->
+                    <RowDefinition Height="Auto" /> <!-- 2. 4 Thẻ KPI Thống Kê Tổng Quan -->
+                    <RowDefinition Height="Auto" /> <!-- 3. 📈 BIỂU ĐỒ DOANH THU THEO NGÀY (FULL WIDTH, CARD RIÊNG) -->
+                    <RowDefinition Height="Auto" /> <!-- 4. 🔥 BIỂU ĐỒ NHIỆT KHUNG GIỜ & TOP MÓN THEO GIỜ (FULL WIDTH, CARD RIÊNG) -->
+                    <RowDefinition Height="Auto" /> <!-- 5. Bố cục 2 cột: Top Món & Nhật Ký Hóa Đơn -->
+                </Grid.RowDefinitions>
 
             <!-- 1. Header & Bộ lọc -->
             <Border Grid.Row="0" Background="White" CornerRadius="12" Padding="20" Margin="0,0,0,15" BorderBrush="#E8ECEF" BorderThickness="1">
@@ -1500,8 +1506,342 @@
                 </Border>
             </Grid>
 
-            <!-- 3. Bố Cục 2 Cột: Top Món Bán Chạy & Nhật Ký Hóa Đơn -->
-            <Grid Grid.Row="2">
+            <!-- 3. KHU VỰC 1: BIỂU ĐỒ CỘT DOANH THU THEO NGÀY (FULL WIDTH - CARD RIÊNG) -->
+            <Border Grid.Row="2" Background="White" CornerRadius="12" Padding="20,16" Margin="0,0,0,15" BorderBrush="#E8ECEF" BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" /> <!-- Tiêu đề & Bộ lọc lịch Calendar (DatePicker) -->
+                        <RowDefinition Height="240" />  <!-- Vùng vẽ biểu đồ có trục tọa độ X, Y full-width -->
+                        <RowDefinition Height="Auto" /> <!-- Chú thích -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Tiêu đề & Bộ lọc Lịch Calendar -->
+                    <DockPanel Grid.Row="0" Margin="0,0,0,12">
+                        <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                            <TextBlock Text="📈 BIỂU ĐỒ DOANH THU THEO NGÀY" FontWeight="Bold" FontSize="14" Foreground="#2C3E50"/>
+                            <TextBlock Text="Trục đứng: Doanh thu • Trục ngang: Ngày/tháng • Bấm vào cột bất kỳ để xem nhiệt khung giờ" FontSize="11" Foreground="#7F8C8D" Margin="0,2,0,0"/>
+                        </StackPanel>
+
+                        <!-- Bộ chọn lịch Calendar (DatePicker Từ ngày - Đến ngày) -->
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="📅 Chọn khoảng ngày:" FontWeight="SemiBold" FontSize="11" Foreground="#475569" VerticalAlignment="Center" Margin="0,0,8,0"/>
+
+                            <TextBlock Text="Từ:" FontSize="11" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <DatePicker SelectedDate="{Binding ChartFromDate, Mode=TwoWay}" Width="125" Height="30" FontSize="11" VerticalContentAlignment="Center" Margin="0,0,8,0"/>
+
+                            <TextBlock Text="Đến:" FontSize="11" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <DatePicker SelectedDate="{Binding ChartToDate, Mode=TwoWay}" Width="125" Height="30" FontSize="11" VerticalContentAlignment="Center" Margin="0,0,10,0"/>
+
+                            <Button Content="🔍 Lọc Dữ Liệu" Command="{Binding ApplyChartDateFilterCommand}"
+                                    Background="#2563EB" Foreground="White" FontWeight="Bold" FontSize="11"
+                                    Padding="12,6" BorderThickness="0" Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="6"/>
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <!-- Vùng đồ thị có Trục Tung (Y-Axis) và Trục Hoành (X-Axis) full-width -->
+                    <Border Grid.Row="1" Background="#F8FAFC" CornerRadius="8" Padding="12,10,12,8" BorderBrush="#F1F5F9" BorderThickness="1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="56" /> <!-- Cột Trục Tung Y (Doanh thu) -->
+                                <ColumnDefinition Width="*" />  <!-- Vùng vẽ các cột và Trục Hoành X (Ngày) -->
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 1. TRỤC TUNG (Y-AXIS: CÁC MỐC DOANH THU) -->
+                            <Grid Grid.Column="0" Margin="0,18,6,35">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Mốc 100% Max -->
+                                <TextBlock Grid.Row="0" Text="{Binding ReportYAxisTicks[0], FallbackValue='2 Tr'}" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+                                <!-- Mốc 75% -->
+                                <TextBlock Grid.Row="1" Text="{Binding ReportYAxisTicks[1], FallbackValue='1.5 Tr'}" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+                                <!-- Mốc 50% -->
+                                <TextBlock Grid.Row="2" Text="{Binding ReportYAxisTicks[2], FallbackValue='1 Tr'}" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+                                <!-- Mốc 25% -->
+                                <TextBlock Grid.Row="3" Text="{Binding ReportYAxisTicks[3], FallbackValue='500k'}" FontSize="10" FontWeight="SemiBold" Foreground="#64748B" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+                                <!-- Mốc 0 đ -->
+                                <TextBlock Grid.Row="4" Text="{Binding ReportYAxisTicks[4], FallbackValue='0 đ'}" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
+                            </Grid>
+
+                            <!-- 2. VÙNG THÂN CỘT & ĐƯỜNG GIÓNG TỌA ĐỘ -->
+                            <Grid Grid.Column="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />    <!-- Vùng cột và đường gióng ngang -->
+                                    <RowDefinition Height="1" />    <!-- Đường kẻ Trục Hoành X -->
+                                    <RowDefinition Height="32" />   <!-- Nhãn Trục Hoành: Thứ & Ngày/tháng -->
+                                </Grid.RowDefinitions>
+
+                                <!-- Các đường kẻ gióng ngang mờ (Gridlines) -->
+                                <Grid Grid.Row="0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                    <Border Grid.Row="0" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0"/>
+                                    <Border Grid.Row="1" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0"/>
+                                    <Border Grid.Row="2" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0"/>
+                                    <Border Grid.Row="3" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0"/>
+                                </Grid>
+
+                                <!-- Danh sách các cột (Bars) -->
+                                <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" BorderThickness="0">
+                                    <ItemsControl ItemsSource="{Binding ReportWeeklySales}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <!-- Nút bấm chọn cột ngày -->
+                                                <Button Command="{Binding DataContext.SelectDayCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Background="Transparent" BorderThickness="0" Padding="4,0" Cursor="Hand" Margin="4,0"
+                                                        VerticalAlignment="Bottom">
+                                                    <Button.Template>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Grid VerticalAlignment="Bottom" HorizontalAlignment="Center">
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="20" />  <!-- Nhãn tiền đỉnh cột -->
+                                                                    <RowDefinition Height="Auto" /><!-- Thân cột -->
+                                                                </Grid.RowDefinitions>
+
+                                                                <!-- Nhãn doanh thu trên đỉnh cột -->
+                                                                <TextBlock Grid.Row="0" Text="{Binding RevenueFormatted}" FontSize="10" FontWeight="Bold" 
+                                                                           Foreground="#475569" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,3"/>
+
+                                                                <!-- Thân cột dọc có Tooltip & Highlight khi chọn -->
+                                                                <Border Grid.Row="1" Width="30" Height="{Binding ColumnHeight}" CornerRadius="5,5,1,1" 
+                                                                        HorizontalAlignment="Center">
+                                                                    <Border.Style>
+                                                                        <Style TargetType="Border">
+                                                                            <Setter Property="Background" Value="#3B82F6"/>
+                                                                            <Setter Property="BorderThickness" Value="0"/>
+                                                                            <Style.Triggers>
+                                                                                <!-- Đỉnh doanh thu -->
+                                                                                <DataTrigger Binding="{Binding IsPeakDay}" Value="True">
+                                                                                    <Setter Property="Background" Value="#EA580C"/>
+                                                                                </DataTrigger>
+                                                                                <!-- Đang được chọn click -->
+                                                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                                    <Setter Property="Background" Value="#0284C7"/>
+                                                                                    <Setter Property="BorderBrush" Value="#0369A1"/>
+                                                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                                                </DataTrigger>
+                                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                                    <Setter Property="Opacity" Value="0.85"/>
+                                                                                </Trigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </Border.Style>
+                                                                    <Border.ToolTip>
+                                                                        <ToolTip Background="#1E293B" Foreground="White" BorderThickness="0" Padding="10">
+                                                                            <StackPanel>
+                                                                                <TextBlock Text="{Binding DayOfWeekName, StringFormat='📅 {0}'}" FontWeight="Bold" FontSize="13" Foreground="#F8FAFC"/>
+                                                                                <TextBlock Text="{Binding DateFormatted, StringFormat='Ngày: {0}'}" FontSize="11" Foreground="#94A3B8" Margin="0,2,0,4"/>
+                                                                                <TextBlock Text="{Binding TotalRevenue, StringFormat='💰 Doanh thu: {0:N0} đ'}" FontWeight="Bold" FontSize="12" Foreground="#4ADE80"/>
+                                                                                <TextBlock Text="{Binding TotalOrders, StringFormat='🧾 Số đơn hàng: {0}'}" FontSize="11" Foreground="#CBD5E1"/>
+                                                                                <TextBlock Text="{Binding TotalCups, StringFormat='☕ Số ly bán ra: {0} ly'}" FontSize="11" Foreground="#FDE047"/>
+                                                                                <Separator Background="#475569" Margin="0,4"/>
+                                                                                <TextBlock Text="👉 Bấm vào cột để xem nhiệt khung giờ ngày này" FontSize="10" Foreground="#38BDF8" FontStyle="Italic"/>
+                                                                            </StackPanel>
+                                                                        </ToolTip>
+                                                                    </Border.ToolTip>
+                                                                </Border>
+                                                            </Grid>
+                                                        </ControlTemplate>
+                                                    </Button.Template>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+
+                                <!-- ĐƯỜNG KẺ TRỤC HOÀNH X -->
+                                <Border Grid.Row="1" Background="#94A3B8"/>
+
+                                <!-- NHÃN TRỤC HOÀNH X: THỨ & NGÀY/THÁNG -->
+                                <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" BorderThickness="0">
+                                    <ItemsControl ItemsSource="{Binding ReportWeeklySales}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Width="38" Margin="4,3,4,0" HorizontalAlignment="Center">
+                                                    <TextBlock Text="{Binding ShortDayName}" FontWeight="Bold" FontSize="11" Foreground="#334155" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding DateFormatted}" FontSize="9" Foreground="#64748B" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <!-- Chú thích cột -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+                        <Border Width="12" Height="12" Background="#3B82F6" CornerRadius="2" Margin="0,0,6,0"/>
+                        <TextBlock Text="Doanh thu ngày" FontSize="11" Foreground="#64748B" Margin="0,0,16,0"/>
+                        <Border Width="12" Height="12" Background="#EA580C" CornerRadius="2" Margin="0,0,6,0"/>
+                        <TextBlock Text="Đỉnh doanh thu" FontSize="11" FontWeight="Bold" Foreground="#EA580C" Margin="0,0,16,0"/>
+                        <Border Width="12" Height="12" Background="#0284C7" CornerRadius="2" Margin="0,0,6,0"/>
+                        <TextBlock Text="Đang chọn xem nhiệt" FontSize="11" FontWeight="Bold" Foreground="#0284C7"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 4. KHU VỰC 2: BIỂU ĐỒ NHIỆT KHUNG GIỜ & TOP MÓN THEO GIỜ (FULL WIDTH - CARD RIÊNG) -->
+            <Border Grid.Row="3" Background="White" CornerRadius="12" Padding="20,16" Margin="0,0,0,15" BorderBrush="#E8ECEF" BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" /> <!-- Tiêu đề & Dải màu chú thích -->
+                        <RowDefinition Height="Auto" /> <!-- Bố cục 2 phần: Ma trận 18 khung giờ & Thẻ chi tiết Top món -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Tiêu đề & Legend -->
+                    <DockPanel Grid.Row="0" Margin="0,0,0,10">
+                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding HeatmapTitle}" FontWeight="Bold" FontSize="14" Foreground="#2C3E50"/>
+                            <!-- Nút quay lại xem tổng hợp nếu đang xem 1 ngày cụ thể -->
+                            <Button Content="↺ Xem Cả Đợt" Command="{Binding ResetToOverallHeatmapCommand}"
+                                    Visibility="{Binding IsViewingSpecificDay, Converter={StaticResource BoolToVis}}"
+                                    Background="#E2E8F0" Foreground="#0F172A" FontWeight="Bold" FontSize="11"
+                                    Padding="8,3" Margin="10,0,0,0" BorderThickness="0" Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="4"/>
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
+                        </StackPanel>
+
+                        <!-- Legend dải nhiệt -->
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Thấp" FontSize="11" Foreground="#94A3B8" Margin="0,0,4,0"/>
+                            <Border Width="14" Height="12" Background="#FEF3C7" CornerRadius="2" Margin="2,0"/>
+                            <Border Width="14" Height="12" Background="#FED7AA" CornerRadius="2" Margin="2,0"/>
+                            <Border Width="14" Height="12" Background="#FB923C" CornerRadius="2" Margin="2,0"/>
+                            <Border Width="14" Height="12" Background="#EA580C" CornerRadius="2" Margin="2,0"/>
+                            <TextBlock Text="Cao điểm" FontSize="11" FontWeight="Bold" Foreground="#EA580C" Margin="4,0,0,0"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <!-- Bố cục 2 phần: Trái là 18 ô khung giờ rộng rãi (2 hàng x 9 cột), Phải là Thẻ chi tiết khung giờ -->
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="6.8*" /> <!-- Ma trận 18 khung giờ (06h - 23h) -->
+                            <ColumnDefinition Width="3.2*" /> <!-- Thẻ chi tiết & Top món theo giờ -->
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Ma trận 18 khung giờ: 2 hàng x 9 cột (rất rộng rãi và thoáng đãng) -->
+                        <Border Grid.Column="0" Background="#F8FAFC" CornerRadius="8" Padding="6" Margin="0,0,12,0" BorderBrush="#F1F5F9" BorderThickness="1">
+                            <ItemsControl ItemsSource="{Binding ReportHourlySales}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Rows="2" Columns="9"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Margin="3" Padding="6,4" Height="48" BorderThickness="1" BorderBrush="#E2E8F0" Cursor="Hand"
+                                                Command="{Binding DataContext.SelectHourCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Setter Property="Background" Value="{Binding HeatColorHex}"/>
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
+                                                                        BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                </Border>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </Button.Style>
+                                            <Button.ToolTip>
+                                                <ToolTip Background="#1E293B" Foreground="White" BorderThickness="0" Padding="10">
+                                                    <StackPanel MaxWidth="280">
+                                                        <TextBlock Text="{Binding HourLabel, StringFormat='⏰ Khung giờ: {0}'}" FontWeight="Bold" FontSize="13" Foreground="#F8FAFC"/>
+                                                        <TextBlock Text="{Binding TotalCups, StringFormat='☕ Tổng ly bán ra: {0} ly'}" FontWeight="Bold" FontSize="12" Foreground="#F97316" Margin="0,3,0,0"/>
+                                                        <TextBlock Text="{Binding TotalRevenue, StringFormat='💰 Doanh thu: {0:N0} đ'}" FontWeight="Bold" FontSize="12" Foreground="#4ADE80" Margin="0,2,0,4"/>
+                                                        <Separator Background="#475569" Margin="0,4"/>
+                                                        <TextBlock Text="🏆 Top món bán chạy trong giờ này:" FontWeight="Bold" FontSize="11" Foreground="#FDE047" Margin="0,0,0,2"/>
+                                                        <TextBlock Text="{Binding TopProductsSummary}" TextWrapping="Wrap" FontSize="11" Foreground="#E2E8F0"/>
+                                                    </StackPanel>
+                                                </ToolTip>
+                                            </Button.ToolTip>
+
+                                            <!-- Nội dung ô -->
+                                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding ShortHour}" FontSize="11" FontWeight="Bold" Foreground="#334155" HorizontalAlignment="Center"/>
+                                                <TextBlock Text="{Binding TotalCups, StringFormat='{}{0} ly'}" FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" HorizontalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+
+                        <!-- Thẻ chi tiết khung giờ đang chọn & Top món bán chạy trong giờ -->
+                        <Border Grid.Column="1" Background="#FFF7ED" CornerRadius="8" Padding="14,12" BorderBrush="#FFEDD5" BorderThickness="1">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Header khung giờ -->
+                                <DockPanel Grid.Row="0">
+                                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="🎯 " FontSize="13"/>
+                                        <TextBlock Text="{Binding SelectedHourlySale.HourLabel, FallbackValue='08:00 - 09:00'}" FontWeight="Bold" FontSize="13" Foreground="#C2410C"/>
+                                    </StackPanel>
+                                    <Border DockPanel.Dock="Right" Background="#EA580C" CornerRadius="4" Padding="6,2" HorizontalAlignment="Right">
+                                        <TextBlock Text="{Binding SelectedHourlySale.TotalCups, StringFormat='{}{0} ly', FallbackValue='0 ly'}" FontWeight="Bold" FontSize="11" Foreground="White"/>
+                                    </Border>
+                                </DockPanel>
+
+                                <!-- Doanh thu trong giờ -->
+                                <StackPanel Grid.Row="1" Margin="0,6,0,8">
+                                    <TextBlock Text="{Binding SelectedHourlySale.TotalRevenue, StringFormat='💰 Doanh thu: {0:N0} đ', FallbackValue='0 đ'}" FontWeight="Bold" FontSize="13" Foreground="#15803D"/>
+                                    <Separator Background="#FED7AA" Margin="0,6"/>
+                                </StackPanel>
+
+                                <!-- Top món bán chạy trong khung giờ -->
+                                <StackPanel Grid.Row="2">
+                                    <TextBlock Text="🏆 Top món bán chạy trong giờ:" FontWeight="Bold" FontSize="11" Foreground="#9A3412" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{Binding SelectedHourlySale.TopProductsSummary, FallbackValue='Chưa có giao dịch trong khung giờ này'}" 
+                                               FontSize="11" Foreground="#431407" TextWrapping="Wrap" LineHeight="16"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- 5. Bố Cục 2 Cột: Top Món Bán Chạy & Nhật Ký Hóa Đơn -->
+            <Grid Grid.Row="4" Height="480">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="4*" /> <!-- Cột Trái: Top Món Bán Chạy -->
                     <ColumnDefinition Width="6*" /> <!-- Cột Phải: Lịch Sử Hóa Đơn -->
@@ -1734,13 +2074,26 @@
                                                         <TextBlock Text="{Binding FinalAmount, StringFormat='{}{0:N0} đ'}" 
                                                                    FontWeight="Bold" FontSize="15" Foreground="#27AE60" VerticalAlignment="Center"/>
 
+                                                        <!-- Nút In Phiếu Pha Chế -->
+                                                        <Button Content="📋 Phiếu pha chế" 
+                                                                Command="{Binding DataContext.OpenKitchenTicketCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                Background="#EBF8FF" Foreground="#2B6CB0" BorderBrush="#BEE3F8" BorderThickness="1"
+                                                                FontSize="11" FontWeight="Bold" Padding="8,3" Cursor="Hand" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                            <Button.Resources>
+                                                                <Style TargetType="Border">
+                                                                    <Setter Property="CornerRadius" Value="4"/>
+                                                                </Style>
+                                                            </Button.Resources>
+                                                        </Button>
+
                                                         <!-- Nút Hoàn Tiền -->
                                                         <Button Content="↩️ Hoàn tiền" 
                                                                 Command="{Binding DataContext.OpenRefundDialogCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                                 CommandParameter="{Binding}"
                                                                 Visibility="{Binding CanRefund, Converter={StaticResource BoolToVis}}"
                                                                 Background="#FFF5F5" Foreground="#E53E3E" BorderBrush="#FEB2B2" BorderThickness="1"
-                                                                FontSize="11" FontWeight="Bold" Padding="8,3" Cursor="Hand" Margin="10,0,0,0" VerticalAlignment="Center">
+                                                                FontSize="11" FontWeight="Bold" Padding="8,3" Cursor="Hand" Margin="8,0,0,0" VerticalAlignment="Center">
                                                             <Button.Resources>
                                                                 <Style TargetType="Border">
                                                                     <Setter Property="CornerRadius" Value="4"/>
@@ -1759,6 +2112,7 @@
                 </Border>
             </Grid>
         </Grid>
+    </ScrollViewer>
 
         <!-- ==================== GIAO DIỆN 5: MÀN HÌNH QUẢN LÝ MÓN NƯỚC, GIÁ & CÔNG THỨC PHA CHẾ (BOM) ==================== -->
         <Grid Grid.Column="1" Grid.ColumnSpan="2" Margin="25" Visibility="{Binding IsProductView, Converter={StaticResource BoolToVis}}">
@@ -1782,9 +2136,29 @@
                     </StackPanel>
 
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="📁 Thêm Danh Mục" Command="{Binding OpenAddCategoryDialogCommand}"
+                                Background="#2980B9" Foreground="White" FontWeight="Bold" FontSize="13"
+                                Padding="14,10" Margin="0,0,10,0" Cursor="Hand" BorderThickness="0">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
+                        <Button Content="🧋 Quản Lý Topping &amp; BOM" Command="{Binding OpenToppingManagementDialogCommand}"
+                                Background="#16A085" Foreground="White" FontWeight="Bold" FontSize="13"
+                                Padding="14,10" Margin="0,0,10,0" Cursor="Hand" BorderThickness="0">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
                         <Button Content="➕ Thêm Món Mới" Command="{Binding OpenAddProductDialogCommand}"
                                 Background="#E67E22" Foreground="White" FontWeight="Bold" FontSize="13"
-                                Padding="16,10" Cursor="Hand" BorderThickness="0">
+                                Padding="14,10" Cursor="Hand" BorderThickness="0">
                             <Button.Resources>
                                 <Style TargetType="Border">
                                     <Setter Property="CornerRadius" Value="8"/>
@@ -1794,7 +2168,7 @@
 
                         <Button Content="🔄 Làm mới" Command="{Binding LoadManagementProductsCommand}"
                                 Background="#34495E" Foreground="White" FontWeight="Bold" FontSize="13"
-                                Padding="16,10" Margin="10,0,0,0" Cursor="Hand" BorderThickness="0">
+                                Padding="14,10" Margin="10,0,0,0" Cursor="Hand" BorderThickness="0">
                             <Button.Resources>
                                 <Style TargetType="Border">
                                     <Setter Property="CornerRadius" Value="8"/>
@@ -1897,14 +2271,24 @@
                                                 <ColumnDefinition Width="2.2*" /> <!-- Thao tác -->
                                             </Grid.ColumnDefinitions>
 
-                                            <!-- 1. Tên món & Mã -->
-                                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
-                                                <TextBlock Text="{Binding ProductName}" FontWeight="Bold" FontSize="14" Foreground="#2C3E50"/>
-                                                <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                                    <Border Background="#EAEDED" CornerRadius="4" Padding="4,2" Margin="0,0,6,0">
-                                                        <TextBlock Text="{Binding ProductCode}" FontSize="11" FontWeight="Bold" Foreground="#7F8C8D"/>
-                                                    </Border>
-                                                    <TextBlock Text="{Binding Description}" FontSize="11" Foreground="#95A5A6" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                            <!-- 1. Avatar ảnh thực tế, Tên món & Mã -->
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                <!-- Thumbnail ảnh đại diện món -->
+                                                <Border Width="44" Height="44" CornerRadius="8" Background="#EDF2F7" BorderBrush="#E2E8F0" BorderThickness="1" Margin="0,0,10,0" ClipToBounds="True">
+                                                    <Grid>
+                                                        <TextBlock Text="☕" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        <Image Source="{Binding ImageUrl}" Stretch="UniformToFill"/>
+                                                    </Grid>
+                                                </Border>
+
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding ProductName}" FontWeight="Bold" FontSize="14" Foreground="#2C3E50"/>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                        <Border Background="#EAEDED" CornerRadius="4" Padding="4,2" Margin="0,0,6,0">
+                                                            <TextBlock Text="{Binding ProductCode}" FontSize="11" FontWeight="Bold" Foreground="#7F8C8D"/>
+                                                        </Border>
+                                                        <TextBlock Text="{Binding Description}" FontSize="11" Foreground="#95A5A6" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
                                                 </StackPanel>
                                             </StackPanel>
 
