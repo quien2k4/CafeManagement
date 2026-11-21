@@ -127,6 +127,24 @@ public class ApiClient
         }
     }
 
+    public async Task<bool> DeleteAsync(string endpoint)
+    {
+        try
+        {
+            var response = await _http.DeleteAsync(endpoint);
+            if (!response.IsSuccessStatusCode)
+            {
+                string error = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException(ParseErrorMessage(error, response.StatusCode.ToString()), null, response.StatusCode);
+            }
+            return true;
+        }
+        catch (Exception ex) when (ex is not HttpRequestException)
+        {
+            throw new HttpRequestException($"Không thể kết nối đến máy chủ API ({_http.BaseAddress}): {ex.Message}", ex);
+        }
+    }
+
     public static string ParseErrorMessage(string rawContent, string defaultStatus)
     {
         try

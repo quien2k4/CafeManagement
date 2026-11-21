@@ -1,0 +1,139 @@
+<Window x:Class="CafeManagement.Wpf.Views.Procurement.SupplierIngredientEditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Thiết Lập Bảng Giá Mặt Hàng Cung Ứng"
+        Height="570" Width="540"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F8FAFC"
+        FontFamily="Segoe UI">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock x:Name="TxtHeader" Text="🏷️ THIẾT LẬP BẢNG GIÁ NGUYÊN LIỆU" FontWeight="Bold" FontSize="16" Foreground="#1E293B" Margin="0,0,0,16"/>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- 1. Chọn nguyên liệu -->
+                <StackPanel Margin="0,0,0,14">
+                    <TextBlock Text="NGUYÊN LIỆU CUNG CẤP (*)" FontWeight="Bold" FontSize="11" Foreground="#475569" Margin="0,0,0,4"/>
+                    <ComboBox x:Name="CboIngredient" Height="36" FontSize="12" DisplayMemberPath="IngredientName" SelectedValuePath="IngredientId"
+                              VerticalContentAlignment="Center" SelectionChanged="CboIngredient_SelectionChanged"/>
+                </StackPanel>
+
+                <!-- 2. Quy cách đóng gói (Loại bao bì + Khối lượng) -->
+                <Border Background="White" CornerRadius="8" Padding="14,12" Margin="0,0,0,14" BorderBrush="#E2E8F0" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="📦 QUY CÁCH ĐÓNG GÓI CỦA NHÀ CUNG CẤP" FontWeight="Bold" FontSize="11" Foreground="#1E40AF" Margin="0,0,0,8"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.1*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="1.1*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Loại bao bì -->
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                <TextBlock Text="LOẠI BAO BÌ" FontWeight="Bold" FontSize="10" Foreground="#64748B" Margin="0,0,0,3"/>
+                                <ComboBox x:Name="CboPackageType" Height="34" FontSize="12" VerticalContentAlignment="Center"
+                                          SelectionChanged="Recalculate_Changed">
+                                    <ComboBoxItem Content="Bịch" IsSelected="True"/>
+                                    <ComboBoxItem Content="Bao"/>
+                                    <ComboBoxItem Content="Thùng"/>
+                                    <ComboBoxItem Content="Gói"/>
+                                    <ComboBoxItem Content="Can"/>
+                                    <ComboBoxItem Content="Chai"/>
+                                    <ComboBoxItem Content="Hộp"/>
+                                    <ComboBoxItem Content="Kg"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <!-- Số lượng / Trọng lượng -->
+                            <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                <TextBlock Text="TRỌNG LƯỢNG / DUNG TÍCH" FontWeight="Bold" FontSize="10" Foreground="#64748B" Margin="0,0,0,3"/>
+                                <TextBox x:Name="TxtPackageSize" Height="34" VerticalContentAlignment="Center" Padding="8,0" Text="1"
+                                         FontWeight="Bold" TextAlignment="Center" TextChanged="Recalculate_Changed"/>
+                            </StackPanel>
+
+                            <!-- Đơn vị trọng lượng -->
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="ĐƠN VỊ" FontWeight="Bold" FontSize="10" Foreground="#64748B" Margin="0,0,0,3"/>
+                                <ComboBox x:Name="CboWeightUnit" Height="34" FontSize="12" VerticalContentAlignment="Center"
+                                          SelectionChanged="Recalculate_Changed">
+                                    <ComboBoxItem Content="kg (kilogam)" Tag="1000" IsSelected="True"/>
+                                    <ComboBoxItem Content="g (gram)" Tag="1"/>
+                                    <ComboBoxItem Content="lít" Tag="1000"/>
+                                    <ComboBoxItem Content="ml (mililit)" Tag="1"/>
+                                    <ComboBoxItem Content="cái / hộp" Tag="1"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- 3. Giá 1 Bịch / Thùng / Bao -->
+                <Grid Margin="0,0,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.4*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="GIÁ 1 BỊCH / THÙNG / BAO (VNĐ) (*)" FontWeight="Bold" FontSize="11" Foreground="#475569" Margin="0,0,0,4"/>
+                        <TextBox x:Name="TxtPackagePrice" Height="34" VerticalContentAlignment="Center" Padding="8,0" Text="150000"
+                                 FontWeight="Bold" Foreground="#0284C7" FontSize="13" TextChanged="Recalculate_Changed"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="SL ĐẶT TỐI THIỂU" FontWeight="Bold" FontSize="11" Foreground="#475569" Margin="0,0,0,4"/>
+                        <TextBox x:Name="TxtMinOrderQty" Height="34" VerticalContentAlignment="Center" Padding="8,0" Text="1"
+                                 TextAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- 4. Thẻ Xem Trước Kết Quả Tự Động Tính Toán -->
+                <Border Background="#F0FDF4" CornerRadius="8" Padding="12,10" Margin="0,0,0,14" BorderBrush="#BBF7D0" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="⚡ HỆ THỐNG TỰ ĐỘNG QUY ĐỔI KHO:" FontWeight="Bold" FontSize="11" Foreground="#166534" Margin="0,0,0,4"/>
+                        <TextBlock x:Name="TxtPreviewCalculation" Text="👉 Quy cách: Bịch 1kg (= 1,000 g) | Đơn vị tính: 150,000 đ / Bịch"
+                                   FontSize="12" FontWeight="SemiBold" Foreground="#15803D" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- 5. Thời gian giao & NCC Ưu tiên -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="THỜI GIAN GIAO HÀNG (NGÀY)" FontWeight="Bold" FontSize="11" Foreground="#475569" Margin="0,0,0,4"/>
+                        <TextBox x:Name="TxtLeadTime" Height="34" VerticalContentAlignment="Center" Padding="8,0" Text="2"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,14,0,0">
+                        <CheckBox x:Name="ChkIsPreferred" Content="⭐ Đặt làm NCC ưu tiên" FontWeight="Bold" Foreground="#D97706" IsChecked="True"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Actions -->
+        <Border Grid.Row="2" Margin="0,16,0,0" Padding="0,12,0,0" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Hủy Bỏ" Width="100" Height="36" Background="#E2E8F0" Foreground="#475569" FontWeight="Bold"
+                        BorderThickness="0" Margin="0,0,10,0" Cursor="Hand" Click="CancelButton_Click"/>
+                <Button Content="💾 Lưu Bảng Giá" Width="140" Height="36" Background="#2563EB" Foreground="White" FontWeight="Bold"
+                        BorderThickness="0" Cursor="Hand" Click="SaveButton_Click"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

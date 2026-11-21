@@ -30,6 +30,14 @@ public class CafeDbContext : DbContext
     public DbSet<Promotion> Promotions => Set<Promotion>();
     public DbSet<WorkShift> WorkShifts => Set<WorkShift>();
     public DbSet<OrderRefund> OrderRefunds => Set<OrderRefund>();
+    public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
+    public DbSet<StockTransferDetail> StockTransferDetails => Set<StockTransferDetail>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+    public DbSet<SupplierIngredient> SupplierIngredients => Set<SupplierIngredient>();
+    public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
+    public DbSet<PurchaseOrderDetail> PurchaseOrderDetails => Set<PurchaseOrderDetail>();
+    public DbSet<GoodsReceipt> GoodsReceipts => Set<GoodsReceipt>();
+    public DbSet<GoodsReceiptDetail> GoodsReceiptDetails => Set<GoodsReceiptDetail>();
 
     public CafeDbContext(DbContextOptions<CafeDbContext> options) : base(options)
     {
@@ -89,5 +97,90 @@ public class CafeDbContext : DbContext
             .WithMany(o => o.Refunds)
             .HasForeignKey(r => r.OrderId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<StockTransfer>()
+            .HasOne(t => t.FromBranch)
+            .WithMany()
+            .HasForeignKey(t => t.FromBranchId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<StockTransfer>()
+            .HasOne(t => t.ToBranch)
+            .WithMany()
+            .HasForeignKey(t => t.ToBranchId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<StockTransferDetail>()
+            .HasOne(d => d.StockTransfer)
+            .WithMany(t => t.Details)
+            .HasForeignKey(d => d.TransferId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<StockTransferDetail>()
+            .HasOne(d => d.Ingredient)
+            .WithMany()
+            .HasForeignKey(d => d.IngredientId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Procurement & QC Relationships
+        modelBuilder.Entity<SupplierIngredient>()
+            .HasOne(si => si.Supplier)
+            .WithMany(s => s.SupplierIngredients)
+            .HasForeignKey(si => si.SupplierId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<SupplierIngredient>()
+            .HasOne(si => si.Ingredient)
+            .WithMany()
+            .HasForeignKey(si => si.IngredientId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PurchaseOrder>()
+            .HasOne(po => po.Supplier)
+            .WithMany()
+            .HasForeignKey(po => po.SupplierId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PurchaseOrder>()
+            .HasOne(po => po.Branch)
+            .WithMany()
+            .HasForeignKey(po => po.BranchId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PurchaseOrderDetail>()
+            .HasOne(pod => pod.PurchaseOrder)
+            .WithMany(po => po.Details)
+            .HasForeignKey(pod => pod.PoId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PurchaseOrderDetail>()
+            .HasOne(pod => pod.Ingredient)
+            .WithMany()
+            .HasForeignKey(pod => pod.IngredientId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<GoodsReceipt>()
+            .HasOne(gr => gr.PurchaseOrder)
+            .WithMany(po => po.GoodsReceipts)
+            .HasForeignKey(gr => gr.PoId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<GoodsReceipt>()
+            .HasOne(gr => gr.Branch)
+            .WithMany()
+            .HasForeignKey(gr => gr.BranchId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<GoodsReceiptDetail>()
+            .HasOne(grd => grd.GoodsReceipt)
+            .WithMany(gr => gr.Details)
+            .HasForeignKey(grd => grd.ReceiptId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<GoodsReceiptDetail>()
+            .HasOne(grd => grd.Ingredient)
+            .WithMany()
+            .HasForeignKey(grd => grd.IngredientId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

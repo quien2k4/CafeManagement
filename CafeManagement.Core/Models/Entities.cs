@@ -287,6 +287,89 @@ public class InventoryTransaction
     public Ingredient? Ingredient { get; set; }
 }
 
+[Table("StockTransfers")]
+public class StockTransfer
+{
+    [Key]
+    public int TransferId { get; set; }
+
+    [Required]
+    [MaxLength(30)]
+    public string TransferCode { get; set; } = string.Empty;
+
+    public int FromBranchId { get; set; }
+    public int ToBranchId { get; set; }
+
+    [MaxLength(30)]
+    public string Status { get; set; } = "REQUESTED"; // REQUESTED, APPROVED, REJECTED, IN_TRANSIT, COMPLETED, COMPLETED_DISCREPANCY, CANCELLED
+
+    public DateTime RequestedDate { get; set; } = DateTime.UtcNow;
+    public int RequestedByUserId { get; set; }
+
+    public DateTime? ApprovedDate { get; set; }
+    public int? ApprovedByUserId { get; set; }
+
+    public DateTime? DispatchedDate { get; set; }
+    public int? DispatchedByUserId { get; set; }
+
+    public DateTime? ReceivedDate { get; set; }
+    public int? ReceivedByUserId { get; set; }
+
+    [MaxLength(255)]
+    public string? RequestNote { get; set; }
+
+    [MaxLength(255)]
+    public string? ApprovalNote { get; set; }
+
+    [MaxLength(500)]
+    public string? ReconciliationNote { get; set; }
+
+    [ForeignKey(nameof(FromBranchId))]
+    public Branch? FromBranch { get; set; }
+
+    [ForeignKey(nameof(ToBranchId))]
+    public Branch? ToBranch { get; set; }
+
+    public List<StockTransferDetail> Details { get; set; } = [];
+}
+
+[Table("StockTransferDetails")]
+public class StockTransferDetail
+{
+    [Key]
+    public int DetailId { get; set; }
+
+    public int TransferId { get; set; }
+    public int IngredientId { get; set; }
+
+    [Column(TypeName = "decimal(12,3)")]
+    public decimal RequestedQuantity { get; set; }
+
+    [Column(TypeName = "decimal(12,3)")]
+    public decimal ApprovedQuantity { get; set; }
+
+    [Column(TypeName = "decimal(12,3)")]
+    public decimal DispatchedQuantity { get; set; }
+
+    [Column(TypeName = "decimal(12,3)")]
+    public decimal ReceivedQuantity { get; set; }
+
+    [Column(TypeName = "decimal(12,3)")]
+    public decimal DiscrepancyQuantity { get; set; } = 0;
+
+    [MaxLength(255)]
+    public string? DiscrepancyReason { get; set; }
+
+    [MaxLength(20)]
+    public string Uom { get; set; } = "g";
+
+    [ForeignKey(nameof(TransferId))]
+    public StockTransfer? StockTransfer { get; set; }
+
+    [ForeignKey(nameof(IngredientId))]
+    public Ingredient? Ingredient { get; set; }
+}
+
 [Table("Orders")]
 public class Order
 {
@@ -770,3 +853,230 @@ public class WorkShift
         DifferenceAmount.Value == 0 ? "#27AE60" :
         DifferenceAmount.Value > 0 ? "#D35400" : "#C0392B";
 }
+
+// ==========================================
+// PHÂN HỆ QUẢN LÝ MUA HÀNG, NCC & TIẾP NHẬN QC (BƯỚC 18.0)
+// ==========================================
+
+[Table("Suppliers")]
+public class Supplier
+{
+    [Key]
+    public int SupplierId { get; set; }
+
+    [Required]
+    [MaxLength(30)]
+    public string SupplierCode { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(150)]
+    public string SupplierName { get; set; } = string.Empty;
+
+    [MaxLength(100)]
+    public string? ContactPerson { get; set; }
+
+    [MaxLength(30)]
+    public string? Phone { get; set; }
+
+    [MaxLength(100)]
+    public string? Email { get; set; }
+
+    [MaxLength(255)]
+    public string? Address { get; set; }
+
+    [MaxLength(50)]
+    public string? TaxCode { get; set; }
+
+    [MaxLength(500)]
+    public string? Note { get; set; }
+
+    public bool IsActive { get; set; } = true;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public List<SupplierIngredient> SupplierIngredients { get; set; } = [];
+}
+
+[Table("SupplierIngredients")]
+public class SupplierIngredient
+{
+    [Key]
+    public int SupplierIngredientId { get; set; }
+
+    public int SupplierId { get; set; }
+    public int IngredientId { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal SupplyPrice { get; set; } = 0;
+
+    [MaxLength(30)]
+    public string PackageUom { get; set; } = "Gói";
+
+    [Column(TypeName = "decimal(12,3)")]
+    public decimal ConversionFactor { get; set; } = 1.0m;
+
+    [Column(TypeName = "decimal(12,3)")]
+    public decimal MinOrderQuantity { get; set; } = 1.0m;
+
+    public int LeadTimeDays { get; set; } = 1;
+
+    public bool IsPreferred { get; set; } = false;
+
+    [ForeignKey(nameof(SupplierId))]
+    public Supplier? Supplier { get; set; }
+
+    [ForeignKey(nameof(IngredientId))]
+    public Ingredient? Ingredient { get; set; }
+}
+
+[Table("PurchaseOrders")]
+public class PurchaseOrder
+{
+    [Key]
+    public int PoId { get; set; }
+
+    [Required]
+    [MaxLength(30)]
+    public string PoCode { get; set; } = string.Empty;
+
+    public int SupplierId { get; set; }
+    public int BranchId { get; set; }
+
+    [MaxLength(30)]
+    public string Status { get; set; } = "DRAFT"; // DRAFT, ORDERED, PARTIALLY_RECEIVED, COMPLETED, CANCELLED
+
+    public DateTime OrderDate { get; set; } = DateTime.UtcNow;
+    public DateTime? ExpectedDeliveryDate { get; set; }
+
+    public int CreatedByUserId { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal SubTotal { get; set; } = 0;
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal TaxAmount { get; set; } = 0;
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal DiscountAmount { get; set; } = 0;
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal TotalAmount { get; set; } = 0;
+
+    [MaxLength(500)]
+    public string? Note { get; set; }
+
+    [ForeignKey(nameof(SupplierId))]
+    public Supplier? Supplier { get; set; }
+
+    [ForeignKey(nameof(BranchId))]
+    public Branch? Branch { get; set; }
+
+    public List<PurchaseOrderDetail> Details { get; set; } = [];
+    public List<GoodsReceipt> GoodsReceipts { get; set; } = [];
+}
+
+[Table("PurchaseOrderDetails")]
+public class PurchaseOrderDetail
+{
+    [Key]
+    public int PoDetailId { get; set; }
+
+    public int PoId { get; set; }
+    public int IngredientId { get; set; }
+
+    [Column(TypeName = "decimal(12,3)")]
+    public decimal OrderedQuantity { get; set; }
+
+    [Column(TypeName = "decimal(12,3)")]
+    public decimal ReceivedQuantity { get; set; } = 0;
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal UnitPrice { get; set; } = 0;
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal SubTotal { get; set; } = 0;
+
+    [MaxLength(30)]
+    public string Uom { get; set; } = "g";
+
+    [ForeignKey(nameof(PoId))]
+    public PurchaseOrder? PurchaseOrder { get; set; }
+
+    [ForeignKey(nameof(IngredientId))]
+    public Ingredient? Ingredient { get; set; }
+}
+
+[Table("GoodsReceipts")]
+public class GoodsReceipt
+{
+    [Key]
+    public int ReceiptId { get; set; }
+
+    [Required]
+    [MaxLength(30)]
+    public string ReceiptCode { get; set; } = string.Empty;
+
+    public int PoId { get; set; }
+    public int BranchId { get; set; }
+
+    public DateTime ReceivedDate { get; set; } = DateTime.UtcNow;
+    public int ReceivedByUserId { get; set; }
+
+    [MaxLength(100)]
+    public string? DeliveryPerson { get; set; }
+
+    [MaxLength(50)]
+    public string? InvoiceNumber { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal TotalAcceptedAmount { get; set; } = 0;
+
+    [MaxLength(500)]
+    public string? Note { get; set; }
+
+    [ForeignKey(nameof(PoId))]
+    public PurchaseOrder? PurchaseOrder { get; set; }
+
+    [ForeignKey(nameof(BranchId))]
+    public Branch? Branch { get; set; }
+
+    public List<GoodsReceiptDetail> Details { get; set; } = [];
+}
+
+[Table("GoodsReceiptDetails")]
+public class GoodsReceiptDetail
+{
+    [Key]
+    public int ReceiptDetailId { get; set; }
+
+    public int ReceiptId { get; set; }
+    public int IngredientId { get; set; }
+
+    [Column(TypeName = "decimal(12,3)")]
+    public decimal DeliveredQuantity { get; set; }
+
+    [Column(TypeName = "decimal(12,3)")]
+    public decimal AcceptedQuantity { get; set; } = 0;
+
+    [Column(TypeName = "decimal(12,3)")]
+    public decimal QuarantinedQuantity { get; set; } = 0;
+
+    [Column(TypeName = "decimal(12,3)")]
+    public decimal RejectedQuantity { get; set; } = 0;
+
+    [MaxLength(255)]
+    public string? RejectionReason { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal UnitPrice { get; set; } = 0;
+
+    [MaxLength(30)]
+    public string Uom { get; set; } = "g";
+
+    [ForeignKey(nameof(ReceiptId))]
+    public GoodsReceipt? GoodsReceipt { get; set; }
+
+    [ForeignKey(nameof(IngredientId))]
+    public Ingredient? Ingredient { get; set; }
+}
+

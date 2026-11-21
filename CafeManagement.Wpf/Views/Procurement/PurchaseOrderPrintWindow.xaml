@@ -1,0 +1,145 @@
+<Window x:Class="CafeManagement.Wpf.Views.Procurement.PurchaseOrderPrintWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Phiếu Đơn Đặt Hàng Mua (Purchase Order)"
+        Height="720" Width="820"
+        WindowStartupLocation="CenterOwner"
+        Background="#F1F5F9"
+        FontFamily="Segoe UI">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Khung giấy A4 trắng giả lập in ấn -->
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <Border x:Name="PrintArea" Background="White" CornerRadius="8" Padding="35" BorderBrush="#CBD5E1" BorderThickness="1">
+                <StackPanel>
+                    <!-- Tiêu đề công ty & Mã PO -->
+                    <DockPanel Margin="0,0,0,15">
+                        <StackPanel DockPanel.Dock="Left">
+                            <TextBlock Text="☕ HỆ THỐNG CAFE MANAGEMENT" FontWeight="Bold" FontSize="16" Foreground="#1E293B"/>
+                            <TextBlock Text="ĐƠN ĐẶT HÀNG NGUYÊN VẬT LIỆU MUA NGOÀI" FontSize="11" Foreground="#64748B"/>
+                        </StackPanel>
+                        <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
+                            <TextBlock x:Name="TxtPoCode" Text="MÃ ĐƠN PO: PO-..." FontWeight="Bold" FontSize="14" Foreground="#2563EB" HorizontalAlignment="Right"/>
+                            <TextBlock x:Name="TxtOrderDate" Text="Ngày đặt: 21/11/2026" FontSize="11" Foreground="#64748B" HorizontalAlignment="Right"/>
+                            <TextBlock x:Name="TxtExpectedDelivery" Text="Ngày giao dự kiến: 23/11/2026" FontSize="11" FontWeight="SemiBold" Foreground="#D97706" HorizontalAlignment="Right"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Separator Background="#E2E8F0" Margin="0,0,0,15"/>
+
+                    <!-- Tên phiếu -->
+                    <TextBlock Text="ĐƠN ĐẶT HÀNG MUA (PURCHASE ORDER)" 
+                               FontWeight="Bold" FontSize="16" Foreground="#0F172A" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+
+                    <!-- Thông tin NCC & Chi nhánh nhận -->
+                    <Border Background="#F8FAFC" CornerRadius="8" Padding="14,10" Margin="0,0,0,15" BorderBrush="#E2E8F0" BorderThickness="1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock x:Name="TxtSupplierName" Text="🏢 Kính gửi NCC: ..." FontWeight="Bold" FontSize="12" Foreground="#334155"/>
+                                <TextBlock x:Name="TxtCreatedBy" Text="Người lập đơn: ..." FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1">
+                                <TextBlock x:Name="TxtBranchName" Text="🏬 Địa điểm nhận hàng: ..." FontWeight="Bold" FontSize="12" Foreground="#334155"/>
+                                <TextBlock x:Name="TxtNote" Text="Ghi chú: ..." FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Bảng các mặt hàng đặt mua -->
+                    <DataGrid x:Name="DgPoItems" AutoGenerateColumns="False" CanUserAddRows="False"
+                              IsReadOnly="True" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
+                              HeadersVisibility="Column" Background="White" RowHeight="32" BorderThickness="1" BorderBrush="#E2E8F0" Margin="0,0,0,15">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="STT" Binding="{Binding Stt}" Width="45"/>
+                            <DataGridTextColumn Header="MÃ NL" Binding="{Binding IngredientCode}" Width="90"/>
+                            <DataGridTextColumn Header="TÊN NGUYÊN LIỆU" Binding="{Binding IngredientName}" Width="*"/>
+                            <DataGridTextColumn Header="SL ĐẶT" Binding="{Binding OrderedQuantity, StringFormat='{}{0:N1}'}" Width="80">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Foreground" Value="#0284C7"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="ĐVT" Binding="{Binding Uom}" Width="60"/>
+                            <DataGridTextColumn Header="ĐƠN GIÁ" Binding="{Binding UnitPrice, StringFormat='{}{0:N0} đ'}" Width="110"/>
+                            <DataGridTextColumn Header="THÀNH TIỀN" Binding="{Binding SubTotal, StringFormat='{}{0:N0} đ'}" Width="130">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Foreground" Value="#2563EB"/>
+                                        <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Khung tính tiền -->
+                    <Border Background="#F0F9FF" CornerRadius="8" Padding="14,10" Margin="0,0,0,25" BorderBrush="#BAE6FD" BorderThickness="1">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,4">
+                                <TextBlock Text="Tạm tính tiền hàng:" Foreground="#475569"/>
+                                <TextBlock x:Name="TxtSubTotal" Text="0 đ" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                            </DockPanel>
+                            <DockPanel Margin="0,0,0,4">
+                                <TextBlock Text="Chiết khấu thương mại:" Foreground="#475569"/>
+                                <TextBlock x:Name="TxtDiscount" Text="0 đ" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                            </DockPanel>
+                            <DockPanel Margin="0,0,0,4">
+                                <TextBlock Text="Thuế VAT:" Foreground="#475569"/>
+                                <TextBlock x:Name="TxtTax" Text="0 đ" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                            </DockPanel>
+                            <Separator Margin="0,4"/>
+                            <DockPanel>
+                                <TextBlock Text="TỔNG GIÁ TRỊ ĐƠN ĐẶT HÀNG (PO):" FontWeight="Bold" FontSize="13" Foreground="#0369A1" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtTotalAmount" Text="0 đ" FontWeight="Bold" FontSize="16" Foreground="#0284C7" HorizontalAlignment="Right"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Chữ ký -->
+                    <Grid Margin="0,20,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                            <TextBlock Text="ĐẠI DIỆN BÊN ĐẶT HÀNG" FontWeight="Bold" FontSize="11" Foreground="#334155" HorizontalAlignment="Center"/>
+                            <TextBlock Text="(Ký &amp; ghi rõ họ tên)" FontSize="10" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,50"/>
+                            <TextBlock x:Name="TxtSignBuyer" Text="..." FontSize="11" Foreground="#475569" HorizontalAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                            <TextBlock Text="ĐẠI DIỆN NHÀ CUNG CẤP" FontWeight="Bold" FontSize="11" Foreground="#334155" HorizontalAlignment="Center"/>
+                            <TextBlock Text="(Ký xác nhận tiếp nhận đơn)" FontSize="10" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,50"/>
+                            <TextBlock Text="Xác nhận giao hàng đúng hẹn" FontSize="11" Foreground="#475569" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </ScrollViewer>
+
+        <!-- Nút hành động -->
+        <Border Grid.Row="1" Margin="0,15,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Đóng" Width="100" Height="36" Background="#E2E8F0" Foreground="#475569" FontWeight="Bold"
+                        BorderThickness="0" Margin="0,0,10,0" Cursor="Hand" Click="CloseButton_Click"/>
+                <Button Content="🖨️ In Đơn Đặt Hàng" Width="180" Height="36" Background="#2563EB" Foreground="White" FontWeight="Bold"
+                        BorderThickness="0" Cursor="Hand" Click="PrintButton_Click"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

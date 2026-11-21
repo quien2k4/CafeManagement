@@ -1021,6 +1021,28 @@
                             </Button.Resources>
                         </Button>
 
+                        <!-- Nút Quản Lý Mua Hàng & Nhà Cung Cấp (Bước 18.0) -->
+                        <Button Content="🏢 Mua Hàng &amp; NCC" 
+                                Command="{Binding OpenProcurementManagementCommand}"
+                                Background="#0284C7" Foreground="White" FontWeight="Bold" FontSize="13" Padding="14,10" Margin="0,0,10,0" BorderThickness="0" Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
+                        <!-- Nút Điều Chuyển Liên Chi Nhánh -->
+                        <Button Content="🚚 Điều Chuyển Kho" 
+                                Command="{Binding OpenStockTransferManagementCommand}"
+                                Background="#7C3AED" Foreground="White" FontWeight="Bold" FontSize="13" Padding="14,10" Margin="0,0,10,0" BorderThickness="0" Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
                         <!-- Nút Làm Mới Thủ Công -->
                         <Button Content="🔄 Làm mới" 
                                 Command="{Binding RefreshInventoryCommand}"

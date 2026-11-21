@@ -28,6 +28,7 @@ using CafeManagement.Wpf.ViewModels.Inventory;
 using CafeManagement.Wpf.ViewModels.Employees;
 using CafeManagement.Wpf.ViewModels.Reports;
 using CafeManagement.Wpf.Views.Inventory;
+using CafeManagement.Wpf.Views.Procurement;
 using CafeManagement.Wpf.Views.Employees;
 using CafeManagement.Wpf.Views.Orders;
 using CafeManagement.Wpf.Services.Printing;
@@ -1372,6 +1373,32 @@ public partial class MainViewModel : ObservableObject
         {
             MessageBox.Show($"Lỗi khi hủy phiếu nhập kho: {ex.Message}", "Lỗi Hủy Phiếu", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    // Mở Quản lý mua hàng, nhà cung cấp & tiếp nhận hàng hóa QC (Bước 18.0)
+    [RelayCommand]
+    public void OpenProcurementManagement()
+    {
+        var window = new ProcurementManagementWindow(CurrentSession);
+        if (Application.Current?.MainWindow != null)
+        {
+            window.Owner = Application.Current.MainWindow;
+        }
+        window.ShowDialog();
+        _ = RefreshInventoryAsync();
+    }
+
+    // Mở Quản lý điều chuyển nguyên liệu liên chi nhánh
+    [RelayCommand]
+    public void OpenStockTransferManagement()
+    {
+        var window = new StockTransferManagementWindow(CurrentSession);
+        if (Application.Current?.MainWindow != null)
+        {
+            window.Owner = Application.Current.MainWindow;
+        }
+        window.ShowDialog();
+        _ = RefreshInventoryAsync();
     }
 
     // Mở hộp thoại Nhập kho nhanh

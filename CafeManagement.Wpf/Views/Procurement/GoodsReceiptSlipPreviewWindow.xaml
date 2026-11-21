@@ -1,0 +1,148 @@
+<Window x:Class="CafeManagement.Wpf.Views.Procurement.GoodsReceiptSlipPreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Biên Bản Nghiệm Thu &amp; Tiếp Nhận Hàng Hóa (GRN)"
+        Height="720" Width="840"
+        WindowStartupLocation="CenterOwner"
+        Background="#F1F5F9"
+        FontFamily="Segoe UI">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Khung giấy A4 trắng giả lập in ấn -->
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <Border x:Name="PrintArea" Background="White" CornerRadius="8" Padding="35" BorderBrush="#CBD5E1" BorderThickness="1">
+                <StackPanel>
+                    <!-- Tiêu đề công ty & Mã phiếu -->
+                    <DockPanel Margin="0,0,0,15">
+                        <StackPanel DockPanel.Dock="Left">
+                            <TextBlock Text="☕ HỆ THỐNG CAFE MANAGEMENT" FontWeight="Bold" FontSize="16" Foreground="#1E293B"/>
+                            <TextBlock Text="CHUỖI CỬA HÀNG &amp; PHÒNG QUẢN LÝ MUA HÀNG" FontSize="11" Foreground="#64748B"/>
+                        </StackPanel>
+                        <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
+                            <TextBlock x:Name="TxtReceiptCode" Text="MÃ BIÊN BẢN: GRN-..." FontWeight="Bold" FontSize="14" Foreground="#16A34A" HorizontalAlignment="Right"/>
+                            <TextBlock x:Name="TxtReceiptDate" Text="Ngày nhận: 21/11/2026 17:00" FontSize="11" Foreground="#64748B" HorizontalAlignment="Right"/>
+                            <TextBlock x:Name="TxtPoCode" Text="Đơn PO: PO-..." FontSize="11" FontWeight="SemiBold" Foreground="#2563EB" HorizontalAlignment="Right"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Separator Background="#E2E8F0" Margin="0,0,0,15"/>
+
+                    <!-- Tên biên bản chính -->
+                    <TextBlock Text="BIÊN BẢN BÀN GIAO &amp; NGHIỆM THU CHẤT LƯỢNG HÀNG HÓA (GRN)" 
+                               FontWeight="Bold" FontSize="16" Foreground="#0F172A" HorizontalAlignment="Center" Margin="0,0,0,15"/>
+
+                    <!-- Thông tin giao nhận -->
+                    <Border Background="#F8FAFC" CornerRadius="8" Padding="14,10" Margin="0,0,0,15" BorderBrush="#E2E8F0" BorderThickness="1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock x:Name="TxtSupplierName" Text="🏢 Nhà cung cấp: ..." FontWeight="Bold" FontSize="12" Foreground="#334155"/>
+                                <TextBlock x:Name="TxtDeliveryPerson" Text="Tài xế / Người giao: ..." FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
+                                <TextBlock x:Name="TxtInvoiceNumber" Text="Hóa đơn / Phiếu xuất NCC: ..." FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1">
+                                <TextBlock x:Name="TxtBranchName" Text="🏬 Chi nhánh nhập kho: ..." FontWeight="Bold" FontSize="12" Foreground="#334155"/>
+                                <TextBlock x:Name="TxtReceiverName" Text="Thủ kho tiếp nhận &amp; QC: ..." FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
+                                <TextBlock x:Name="TxtNote" Text="Ghi chú: ..." FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Bảng kiểm đếm chi tiết -->
+                    <DataGrid x:Name="DgReceiptItems" AutoGenerateColumns="False" CanUserAddRows="False"
+                              IsReadOnly="True" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F1F5F9"
+                              HeadersVisibility="Column" Background="White" RowHeight="32" BorderThickness="1" BorderBrush="#E2E8F0" Margin="0,0,0,15">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="STT" Binding="{Binding Stt}" Width="45"/>
+                            <DataGridTextColumn Header="TÊN NGUYÊN LIỆU" Binding="{Binding IngredientName}" Width="*"/>
+                            <DataGridTextColumn Header="GIAO" Binding="{Binding DeliveredQuantity, StringFormat='{}{0:N1}'}" Width="65"/>
+                            <DataGridTextColumn Header="ĐẠT" Binding="{Binding AcceptedQuantity, StringFormat='{}{0:N1}'}" Width="65">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Foreground" Value="#16A34A"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="TRẢ" Binding="{Binding RejectedQuantity, StringFormat='{}{0:N1}'}" Width="60">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Foreground" Value="#DC2626"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="LÝ DO TRẢ / LỖI" Binding="{Binding RejectionReason}" Width="1.2*"/>
+                            <DataGridTextColumn Header="ĐVT" Binding="{Binding Uom}" Width="50"/>
+                            <DataGridTextColumn Header="ĐƠN GIÁ" Binding="{Binding UnitPrice, StringFormat='{}{0:N0} đ'}" Width="95"/>
+                            <DataGridTextColumn Header="TIỀN GHI SỔ" Binding="{Binding TotalAcceptedPrice, StringFormat='{}{0:N0} đ'}" Width="110">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Foreground" Value="#2563EB"/>
+                                        <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Tổng thanh toán nghiệm thu -->
+                    <Border Background="#F0FDF4" CornerRadius="8" Padding="14,10" Margin="0,0,0,25" BorderBrush="#BBF7D0" BorderThickness="1">
+                        <DockPanel>
+                            <TextBlock Text="TỔNG GIÁ TRỊ HÀNG ĐẠT CHUẨN GHI SỔ KHO &amp; THANH TOÁN:" FontWeight="Bold" FontSize="12" Foreground="#166534" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtTotalAmountDisplay" Text="0 đ" FontWeight="Bold" FontSize="16" Foreground="#15803D" HorizontalAlignment="Right"/>
+                        </DockPanel>
+                    </Border>
+
+                    <!-- Chữ ký các bên -->
+                    <Grid Margin="0,20,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                            <TextBlock Text="ĐẠI DIỆN NCC / TÀI XẾ" FontWeight="Bold" FontSize="11" Foreground="#334155" HorizontalAlignment="Center"/>
+                            <TextBlock Text="(Ký &amp; ghi rõ họ tên)" FontSize="10" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,50"/>
+                            <TextBlock x:Name="TxtSignDriver" Text="..." FontSize="11" Foreground="#475569" HorizontalAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                            <TextBlock Text="NGƯỜI TIẾP NHẬN / QC" FontWeight="Bold" FontSize="11" Foreground="#334155" HorizontalAlignment="Center"/>
+                            <TextBlock Text="(Ký &amp; ghi rõ họ tên)" FontSize="10" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,50"/>
+                            <TextBlock x:Name="TxtSignReceiver" Text="..." FontSize="11" Foreground="#475569" HorizontalAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                            <TextBlock Text="QUẢN LÝ CỬA HÀNG / KHO" FontWeight="Bold" FontSize="11" Foreground="#334155" HorizontalAlignment="Center"/>
+                            <TextBlock Text="(Ký xác nhận)" FontSize="10" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,50"/>
+                            <TextBlock Text="Đã duyệt" FontSize="11" Foreground="#475569" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </ScrollViewer>
+
+        <!-- Nút hành động -->
+        <Border Grid.Row="1" Margin="0,15,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Đóng" Width="100" Height="36" Background="#E2E8F0" Foreground="#475569" FontWeight="Bold"
+                        BorderThickness="0" Margin="0,0,10,0" Cursor="Hand" Click="CloseButton_Click"/>
+                <Button Content="🖨️ In Biên Bản Nghiệm Thu" Width="200" Height="36" Background="#16A34A" Foreground="White" FontWeight="Bold"
+                        BorderThickness="0" Cursor="Hand" Click="PrintButton_Click"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
