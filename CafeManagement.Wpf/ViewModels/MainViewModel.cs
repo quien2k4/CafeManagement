@@ -32,6 +32,8 @@ using CafeManagement.Wpf.Views.Procurement;
 using CafeManagement.Wpf.Views.Employees;
 using CafeManagement.Wpf.Views.Orders;
 using CafeManagement.Wpf.Services.Printing;
+using CafeManagement.Wpf.Services.Offline;
+using CafeManagement.Core.DTOs.Sync;
 using System.Windows;
 
 namespace CafeManagement.Wpf.ViewModels;
@@ -233,6 +235,19 @@ public partial class MainViewModel : ObservableObject
     public bool HasNoSelectedPromotion => SelectedPromotion == null;
 
     partial void OnUseCustomerPointsChanged(bool value) => UpdateTotals();
+
+    // 2.2 TRẠNG THÁI MẠNG & ĐỒNG BỘ OFFLINE
+    [ObservableProperty]
+    private bool _isOnline = true;
+
+    [ObservableProperty]
+    private int _pendingSyncCount = 0;
+
+    [ObservableProperty]
+    private string _networkStatusText = "ONLINE";
+
+    [ObservableProperty]
+    private string _networkStatusBadgeColor = "#38A169";
 
     // 2.1 QUẢN LÝ CA LÀM VIỆC & KÉT TIỀN MẶT
     [ObservableProperty]
@@ -485,6 +500,7 @@ public partial class MainViewModel : ObservableObject
         }
 
         _ = LoadDataAsync();
+        InitializeOfflineSync();
 
         // Timer quét đơn mới và cập nhật thời gian
         _timer.Interval = TimeSpan.FromSeconds(4);
@@ -497,6 +513,74 @@ public partial class MainViewModel : ObservableObject
             }
         };
         _timer.Start();
+    }
+
+    private void InitializeOfflineSync()
+    {
+        var syncMgr = OfflineSyncManager.Instance;
+        IsOnline = syncMgr.IsOnline;
+        PendingSyncCount = syncMgr.PendingSyncCount;
+        NetworkStatusText = IsOnline ? "ONLINE" : "OFFLINE";
+        NetworkStatusBadgeColor = IsOnline ? "#38A169" : "#E53E3E";
+
+        syncMgr.ConnectionStatusChanged += isOnline =>
+        {
+            Application.Current?.Dispatcher.Invoke(() =>
+            {
+                IsOnline = isOnline;
+                NetworkStatusText = isOnline ? "ONLINE" : "OFFLINE";
+                NetworkStatusBadgeColor = isOnline ? "#38A169" : "#E53E3E";
+            });
+        };
+
+        syncMgr.PendingCountChanged += count =>
+        {
+            Application.Current?.Dispatcher.Invoke(() =>
+            {
+                PendingSyncCount = count;
+            });
+        };
+
+        syncMgr.ConflictDetected += conflict =>
+        {
+            Application.Current?.Dispatcher.Invoke(async () =>
+            {
+                var dlg = new SyncConflictDialog(conflict);
+                if (Application.Current?.MainWindow != null) dlg.Owner = Application.Current.MainWindow;
+                if (dlg.ShowDialog() == true)
+                {
+                    await OfflineSyncManager.Instance.ResolveConflictAsync(conflict.LocalId, conflict.ServerOrderId, dlg.ResultChoice);
+                    MessageBox.Show($"Đã xử lý xung đột đơn #{conflict.OrderNumber} thành công ({dlg.ResultChoice})!", "Đồng Bộ", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            });
+        };
+
+        syncMgr.StartMonitoring();
+    }
+
+    [RelayCommand]
+    public async Task ManualSyncAsync()
+    {
+        bool online = await OfflineSyncManager.Instance.CheckConnectionAsync();
+        if (!online)
+        {
+            MessageBox.Show(
+                $"🔴 Hiện tại máy POS đang OFFLINE (Không thể kết nối đến máy chủ {ApiClient.Instance.BaseUrl}).\n\n" +
+                $"• Số đơn đang chờ đồng bộ: {PendingSyncCount} đơn\n\n" +
+                $"Ứng dụng vẫn cho phép bán hàng tiền mặt bình thường. Hệ thống sẽ tự động gửi đơn khi có mạng.",
+                "Trạng Thái Mạng", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (PendingSyncCount == 0)
+        {
+            MessageBox.Show($"🟢 Kết nối máy chủ ({ApiClient.Instance.BaseUrl}) HOÀN HẢO!\n• Tất cả đơn hàng đã được đồng bộ 100%.", "Đồng Bộ", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        int before = PendingSyncCount;
+        await OfflineSyncManager.Instance.TriggerSyncAsync();
+        MessageBox.Show($"🎉 Đã kiểm tra và tiến hành đồng bộ {before} đơn hàng lên máy chủ!", "Đồng Bộ Thành Công", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     [RelayCommand]
@@ -577,10 +661,27 @@ public partial class MainViewModel : ObservableObject
             // Kiểm tra ca làm việc đang mở của chi nhánh
             int curBranchId = CurrentSession.BranchId;
             CurrentShift = await ShiftApiClient.Instance.GetCurrentOpenShiftAsync(curBranchId);
+
+            // Tự động lưu cache Menu cho chế độ Offline
+            if (cats != null && cats.Count > 0)
+            {
+                var prods = await ProductApiClient.Instance.GetProductsAsync(null, activeOnly: true);
+                OfflineStorageService.Instance.SaveMenuCache(cats, prods);
+            }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Lỗi kết nối máy chủ API: {ex.Message}", "Lỗi Tải Dữ Liệu", MessageBoxButton.OK, MessageBoxImage.Error);
+            // Mất kết nối: Tự động tải từ Cache cục bộ
+            var cache = OfflineStorageService.Instance.GetMenuCache();
+            if (cache != null && cache.Categories.Count > 0)
+            {
+                Categories = new ObservableCollection<ProductCategory>(cache.Categories);
+                Products = new ObservableCollection<Product>(cache.Products);
+            }
+            else
+            {
+                MessageBox.Show($"Không thể kết nối máy chủ và chưa có bộ nhớ đệm Offline: {ex.Message}", "Cảnh Báo Mạng", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
     }
 
@@ -588,8 +689,23 @@ public partial class MainViewModel : ObservableObject
     public async Task FilterProductsAsync(ProductCategory? category)
     {
         SelectedCategory = category;
-        var list = await ProductApiClient.Instance.GetProductsAsync(category?.CategoryId, activeOnly: true);
-        Products = new ObservableCollection<Product>(list);
+        try
+        {
+            var list = await ProductApiClient.Instance.GetProductsAsync(category?.CategoryId, activeOnly: true);
+            Products = new ObservableCollection<Product>(list);
+        }
+        catch
+        {
+            // Mất mạng: Lọc từ Cache cục bộ
+            var cache = OfflineStorageService.Instance.GetMenuCache();
+            if (cache != null)
+            {
+                var filtered = (category == null || category.CategoryId == 0)
+                    ? cache.Products
+                    : cache.Products.Where(p => p.CategoryId == category.CategoryId).ToList();
+                Products = new ObservableCollection<Product>(filtered);
+            }
+        }
     }
 
     [RelayCommand]
@@ -846,11 +962,41 @@ public partial class MainViewModel : ObservableObject
                     }).ToList()
                 };
 
-                var createdOrder = await OrderApiClient.Instance.CreateOrderAsync(req);
+                OrderDto? createdOrder = null;
+                bool isOffline = false;
+
+                if (OfflineSyncManager.Instance.IsOnline)
+                {
+                    try
+                    {
+                        createdOrder = await OrderApiClient.Instance.CreateOrderAsync(req);
+                    }
+                    catch
+                    {
+                        createdOrder = null;
+                    }
+                }
+
                 if (createdOrder == null)
                 {
-                    MessageBox.Show("Không thể tạo đơn hàng trên máy chủ API!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
+                    // Chuyển sang lưu đơn Offline cục bộ
+                    var offlineRecord = OfflineSyncManager.Instance.CreateOfflineOrder(req);
+                    isOffline = true;
+                    createdOrder = new OrderDto
+                    {
+                        OrderId = 0,
+                        OrderNumber = offlineRecord.OrderNumber,
+                        BranchId = req.BranchId,
+                        BranchName = BranchName,
+                        CashierUserId = req.CashierUserId,
+                        CashierName = CurrentCashier,
+                        Status = "OFFLINE_PENDING",
+                        SubTotal = req.SubTotal,
+                        DiscountAmount = req.DiscountAmount,
+                        FinalAmount = req.FinalAmount,
+                        PaymentMethod = req.PaymentMethod,
+                        CreatedAt = offlineRecord.CreatedAt
+                    };
                 }
 
                 // Cập nhật ca làm việc cục bộ
@@ -874,16 +1020,23 @@ public partial class MainViewModel : ObservableObject
                 string promoInfoStr = SelectedPromotion != null ? $"\n\n🎟️ ƯU ĐÃI: {SelectedPromotion.PromotionName} (-{VoucherDiscountAmount:N0} đ)" : "";
                 string customerInfoStr = SelectedCustomer != null ? $"\n\n👤 KHÁCH HÀNG: {SelectedCustomer.FullName} ({SelectedCustomer.PhoneNumber})" + (createdOrder.PointsEarned > 0 ? $"\n• Điểm tích lũy mới: +{createdOrder.PointsEarned} điểm" : "") : "";
 
+                string successTitle = isOffline ? "⚡ ĐÃ LƯU ĐƠN CỤC BỘ (OFFLINE)" : "🎉 THANH TOÁN THÀNH CÔNG!";
+                string offlineNotice = isOffline 
+                    ? $"\n\n🔴 [MẤT KẾT NỐI MÁY CHỦ] Đơn đã lưu vào hàng đợi cục bộ!\n• Đang chờ đồng bộ: {OfflineSyncManager.Instance.PendingSyncCount} đơn\n• Hệ thống sẽ tự động đồng bộ lên máy chủ khi có mạng lại."
+                    : "\n\n⚡ Đã tự động trừ nguyên liệu trong kho!";
+
                 var promptPrint = MessageBox.Show(
-                    $"🎉 THANH TOÁN THÀNH CÔNG!\n\n" +
+                    $"{successTitle}\n\n" +
                     $"• Mã đơn: #{createdOrder.OrderNumber}\n" +
                     $"• Tổng thanh toán: {FinalAmount:N0} đ\n" +
                     $"• Hình thức: {methodStr}{changeStr}\n" +
                     $"• Biên nhận: REC_{createdOrder.OrderNumber}" +
-                    promoInfoStr + customerInfoStr + "\n\n" +
-                    $"⚡ Đã tự động trừ nguyên liệu trong kho!\n\n" +
+                    promoInfoStr + customerInfoStr + 
+                    offlineNotice + "\n\n" +
                     $"Bạn có muốn mở & in Phiếu Pha Chế (Barista Ticket) ngay không?",
-                    "Hoàn tất đơn hàng & In Phiếu", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                    isOffline ? "Đã Lưu Đơn Offline & In Phiếu" : "Hoàn tất đơn hàng & In Phiếu", 
+                    MessageBoxButton.YesNo, 
+                    isOffline ? MessageBoxImage.Warning : MessageBoxImage.Information);
 
                 if (promptPrint == MessageBoxResult.Yes)
                 {

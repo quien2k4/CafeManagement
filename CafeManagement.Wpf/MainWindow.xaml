@@ -35,6 +35,32 @@
                 <!-- Thông tin phiên đăng nhập ở đáy & Nút Đăng xuất -->
                 <Border DockPanel.Dock="Bottom" Background="#151521" Padding="15" Margin="10,0,10,15" CornerRadius="8">
                     <StackPanel>
+                        <!-- Trạng thái Mạng: ONLINE / OFFLINE (Pending Sync) -->
+                        <Border Background="{Binding NetworkStatusBadgeColor}" CornerRadius="6" Padding="10,6" Margin="0,0,0,10" Cursor="Hand" ToolTip="Nhấp vào để kiểm tra kết nối và đồng bộ ngay">
+                            <Border.InputBindings>
+                                <MouseBinding Gesture="LeftClick" Command="{Binding ManualSyncCommand}"/>
+                            </Border.InputBindings>
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Ellipse Width="8" Height="8" Fill="White" Margin="0,0,6,0"/>
+                                    <TextBlock Text="{Binding NetworkStatusText}" Foreground="White" FontWeight="Bold" FontSize="11"/>
+                                </StackPanel>
+                                <Border DockPanel.Dock="Right" Background="#9B2C2C" CornerRadius="4" Padding="6,2" HorizontalAlignment="Right">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding PendingSyncCount}" Value="0">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding PendingSyncCount, StringFormat='Pending: {0}'}" Foreground="White" FontWeight="Bold" FontSize="10"/>
+                                </Border>
+                            </DockPanel>
+                        </Border>
+
                         <TextBlock Text="👤 Đang làm việc:" Foreground="#8A8A9E" FontSize="11"/>
                         <TextBlock Text="{Binding CurrentCashier}" Foreground="White" FontWeight="SemiBold" FontSize="13" Margin="0,2,0,5" TextWrapping="Wrap"/>
                         <TextBlock Text="📍 Chi nhánh:" Foreground="#8A8A9E" FontSize="11"/>

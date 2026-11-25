@@ -16,6 +16,7 @@ using CafeManagement.Api.Services.Inventory;
 using CafeManagement.Api.Services.Employees;
 using CafeManagement.Api.Services.Reports;
 using CafeManagement.Api.Services.Procurement;
+using CafeManagement.Api.Services.Sync;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,6 +41,7 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IRefundService, RefundService>();
 builder.Services.AddScoped<IStockTransferService, StockTransferService>();
 builder.Services.AddScoped<IProcurementService, ProcurementService>();
+builder.Services.AddScoped<ISyncService, SyncService>();
 
 // Cấu hình Controllers và tuần tự hóa JSON tránh vòng lặp tham chiếu
 builder.Services.AddControllers()

@@ -12,13 +12,28 @@ public class ApiClient
     private readonly HttpClient _http;
     private readonly JsonSerializerOptions _jsonOptions;
 
-    public string BaseUrl { get; set; } = "http://localhost:5000";
+    public string BaseUrl { get; private set; }
 
     public ApiClient()
     {
+        var configuredBaseUrl =
+            Environment.GetEnvironmentVariable("CAFEMANAGEMENT_API_URL");
+
+        BaseUrl = string.IsNullOrWhiteSpace(configuredBaseUrl)
+            ? "http://localhost:5000"
+            : configuredBaseUrl.TrimEnd('/');
+
+        if (!Uri.TryCreate(BaseUrl, UriKind.Absolute, out var apiUri) ||
+            (apiUri.Scheme != Uri.UriSchemeHttp &&
+             apiUri.Scheme != Uri.UriSchemeHttps))
+        {
+            throw new InvalidOperationException(
+                $"Địa chỉ API không hợp lệ: {BaseUrl}");
+        }
+
         _http = new HttpClient
         {
-            BaseAddress = new Uri(BaseUrl),
+            BaseAddress = apiUri,
             Timeout = TimeSpan.FromSeconds(15)
         };
 
