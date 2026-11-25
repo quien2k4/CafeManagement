@@ -2464,6 +2464,21 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public void OpenStaffingAnalyticsDialog()
+    {
+        try
+        {
+            var dlg = new StaffingAnalyticsWindow(CurrentSession?.BranchId);
+            dlg.Owner = Application.Current.MainWindow;
+            dlg.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi mở phân tích nhân sự: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
     public async Task OpenAddEmployeeDialogAsync()
     {
         try

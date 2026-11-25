@@ -26,4 +26,16 @@ public class ReportsController : ControllerBase
         var report = await _reportService.GetDashboardReportAsync(branchId, dateFilter, days, fromDate, toDate);
         return Ok(report);
     }
+
+    [HttpGet("staffing-analytics")]
+    public async Task<ActionResult<BranchStaffingAnalyticsResponse>> GetStaffingAnalytics(
+        [FromQuery] int? branchId,
+        [FromQuery] int days = 14,
+        [FromQuery] string dayType = "ALL",
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null)
+    {
+        var result = await _reportService.GetStaffingAnalyticsAsync(branchId, days, dayType, fromDate, toDate);
+        return Ok(result);
+    }
 }

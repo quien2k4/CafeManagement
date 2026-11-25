@@ -47,4 +47,34 @@ public class ReportApiClient
             return null;
         }
     }
+
+    public async Task<BranchStaffingAnalyticsResponse?> GetStaffingAnalyticsAsync(
+        int? branchId = null,
+        int days = 14,
+        string dayType = "ALL",
+        DateTime? fromDate = null,
+        DateTime? toDate = null)
+    {
+        try
+        {
+            string url = $"/api/reports/staffing-analytics?days={days}&dayType={Uri.EscapeDataString(dayType)}";
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                url += $"&branchId={branchId.Value}";
+            }
+            if (fromDate.HasValue)
+            {
+                url += $"&fromDate={fromDate.Value:yyyy-MM-dd}";
+            }
+            if (toDate.HasValue)
+            {
+                url += $"&toDate={toDate.Value:yyyy-MM-dd}";
+            }
+            return await _api.GetAsync<BranchStaffingAnalyticsResponse>(url);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }

@@ -1454,6 +1454,16 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- Nút Mở Phân Tích Nhân Sự -->
+                        <Button Content="📈 Đề Xuất Nhân Sự" Command="{Binding OpenStaffingAnalyticsDialogCommand}"
+                                Background="#6B46C1" Foreground="White" FontWeight="Bold" FontSize="12" Padding="14,8" BorderThickness="0" Cursor="Hand" Margin="0,0,10,0">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
                         <!-- Nút Làm Mới -->
                         <Button Content="🔄 Làm mới" Command="{Binding RefreshReportCommand}"
                                 Background="#FFA726" Foreground="White" FontWeight="Bold" FontSize="12" Padding="14,8" BorderThickness="0" Cursor="Hand">
@@ -2753,6 +2763,16 @@
                     </StackPanel>
 
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="📊 Phân Tích Lưu Lượng &amp; Nhân Sự" Command="{Binding OpenStaffingAnalyticsDialogCommand}"
+                                Background="#6B46C1" Foreground="White" FontWeight="Bold" FontSize="12"
+                                Padding="14,8" BorderThickness="0" Cursor="Hand" Margin="0,0,10,0">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="6"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
                         <Button Content="➕ Thêm Nhân Viên" Command="{Binding OpenAddEmployeeDialogCommand}"
                                 Background="#2B6CB0" Foreground="White" FontWeight="Bold" FontSize="12"
                                 Padding="14,8" BorderThickness="0" Cursor="Hand" Margin="0,0,10,0">
