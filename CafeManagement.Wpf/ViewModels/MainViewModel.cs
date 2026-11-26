@@ -662,11 +662,19 @@ public partial class MainViewModel : ObservableObject
             int curBranchId = CurrentSession.BranchId;
             CurrentShift = await ShiftApiClient.Instance.GetCurrentOpenShiftAsync(curBranchId);
 
-            // Tự động lưu cache Menu cho chế độ Offline
+            // Tự động lưu cache Menu, Toppings & Nguyên liệu cho chế độ Offline
             if (cats != null && cats.Count > 0)
             {
                 var prods = await ProductApiClient.Instance.GetProductsAsync(null, activeOnly: true);
-                OfflineStorageService.Instance.SaveMenuCache(cats, prods);
+                var toppings = await ProductApiClient.Instance.GetToppingsAsync(activeOnly: true);
+                List<BranchInventoryDto>? invs = null;
+                try
+                {
+                    invs = await InventoryApiClient.Instance.GetBranchInventoryAsync(curBranchId > 0 ? curBranchId : 1);
+                }
+                catch { }
+
+                OfflineStorageService.Instance.SaveMenuCache(cats, prods, toppings, invs);
             }
         }
         catch (Exception ex)
@@ -689,6 +697,21 @@ public partial class MainViewModel : ObservableObject
     public async Task FilterProductsAsync(ProductCategory? category)
     {
         SelectedCategory = category;
+
+        // Nếu offline, lọc trực tiếp từ bộ nhớ đệm không đợi HTTP
+        if (!OfflineSyncManager.Instance.IsOnline)
+        {
+            var cache = OfflineStorageService.Instance.GetMenuCache();
+            if (cache != null)
+            {
+                var filtered = (category == null || category.CategoryId == 0)
+                    ? cache.Products
+                    : cache.Products.Where(p => p.CategoryId == category.CategoryId).ToList();
+                Products = new ObservableCollection<Product>(filtered);
+            }
+            return;
+        }
+
         try
         {
             var list = await ProductApiClient.Instance.GetProductsAsync(category?.CategoryId, activeOnly: true);
@@ -713,7 +736,16 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var toppings = await ProductApiClient.Instance.GetToppingsAsync(activeOnly: true);
+            List<Topping> toppings;
+            if (!OfflineSyncManager.Instance.IsOnline)
+            {
+                toppings = OfflineStorageService.Instance.GetCachedToppings();
+            }
+            else
+            {
+                toppings = await ProductApiClient.Instance.GetToppingsAsync(activeOnly: true);
+            }
+
             var vm = new CustomizeProductViewModel(product, toppings);
 
             var dialog = new CustomizeProductWindow(vm);
@@ -763,7 +795,16 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var toppings = await ProductApiClient.Instance.GetToppingsAsync(activeOnly: true);
+            List<Topping> toppings;
+            if (!OfflineSyncManager.Instance.IsOnline)
+            {
+                toppings = OfflineStorageService.Instance.GetCachedToppings();
+            }
+            else
+            {
+                toppings = await ProductApiClient.Instance.GetToppingsAsync(activeOnly: true);
+            }
+
             var vm = new CustomizeProductViewModel(item.Product, toppings, item);
 
             var dialog = new CustomizeProductWindow(vm);
@@ -1069,6 +1110,12 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task SearchCustomerAsync()
     {
+        if (!OfflineSyncManager.Instance.IsOnline)
+        {
+            MessageBox.Show("Ứng dụng đang ở chế độ OFFLINE (mất kết nối mạng).\nTính năng tra cứu thông tin khách hàng và tích điểm thành viên tạm thời không khả dụng cho đến khi có mạng trở lại.", "Chế Độ Offline", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
         try
         {
             string phone = CustomerSearchPhone.Trim();
@@ -1132,6 +1179,12 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task ApplyVoucherAsync()
     {
+        if (!OfflineSyncManager.Instance.IsOnline)
+        {
+            MessageBox.Show("Ứng dụng đang ở chế độ OFFLINE (mất kết nối mạng).\nTính năng áp dụng mã Voucher trực tuyến chỉ hỗ trợ khi có kết nối Internet.", "Chế Độ Offline", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
         try
         {
             string code = VoucherInputCode.Trim().ToUpper();
@@ -1408,10 +1461,33 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task RefreshInventoryAsync()
     {
+        int branchId = CurrentSession.BranchId > 0 ? CurrentSession.BranchId : 1;
+
+        // Nếu đang Offline, đọc ngay lập tức từ bộ nhớ đệm
+        if (!OfflineSyncManager.Instance.IsOnline)
+        {
+            var cachedStocks = OfflineStorageService.Instance.GetCachedInventories();
+            if (cachedStocks != null && cachedStocks.Count > 0)
+            {
+                var items = cachedStocks.Select(s => new InventoryItemViewModel
+                {
+                    BranchInventoryId = s.BranchInventoryId,
+                    IngredientId = s.IngredientId,
+                    IngredientCode = s.IngredientCode,
+                    IngredientName = s.IngredientName,
+                    BaseUom = s.BaseUom,
+                    QuantityOnHand = s.QuantityOnHand,
+                    MinStockAlert = s.MinStockAlert
+                }).ToList();
+
+                InventoryItems = new ObservableCollection<InventoryItemViewModel>(items);
+                LowStockCount = items.Count(i => i.IsLowStock);
+                return;
+            }
+        }
+
         try
         {
-            int branchId = CurrentSession.BranchId > 0 ? CurrentSession.BranchId : 1;
-
             var stocks = await InventoryApiClient.Instance.GetBranchInventoryAsync(branchId);
             var items = stocks.Select(s => new InventoryItemViewModel
             {
@@ -1426,6 +1502,9 @@ public partial class MainViewModel : ObservableObject
 
             InventoryItems = new ObservableCollection<InventoryItemViewModel>(items);
             LowStockCount = items.Count(i => i.IsLowStock);
+
+            // Tự động lưu cache kho nguyên liệu
+            OfflineStorageService.Instance.SaveCachedInventories(stocks);
 
             var trans = await InventoryApiClient.Instance.GetTransactionsAsync(branchId, 500);
             _allInventoryTransactions = trans.Select(t => new InventoryTransactionItemViewModel
@@ -1447,7 +1526,52 @@ public partial class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Lỗi tải dữ liệu kho: {ex.Message}", "Lỗi Kho", MessageBoxButton.OK, MessageBoxImage.Error);
+            var cachedStocks = OfflineStorageService.Instance.GetCachedInventories();
+            if (cachedStocks != null && cachedStocks.Count > 0)
+            {
+                var items = cachedStocks.Select(s => new InventoryItemViewModel
+                {
+                    BranchInventoryId = s.BranchInventoryId,
+                    IngredientId = s.IngredientId,
+                    IngredientCode = s.IngredientCode,
+                    IngredientName = s.IngredientName,
+                    BaseUom = s.BaseUom,
+                    QuantityOnHand = s.QuantityOnHand,
+                    MinStockAlert = s.MinStockAlert
+                }).ToList();
+
+                InventoryItems = new ObservableCollection<InventoryItemViewModel>(items);
+                LowStockCount = items.Count(i => i.IsLowStock);
+            }
+            else
+            {
+                MessageBox.Show($"Lỗi tải dữ liệu kho: {ex.Message}", "Lỗi Kho", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+    }
+
+    // Mở hộp thoại Quản lý Bộ Nhớ Đệm Tồn Kho Offline
+    [RelayCommand]
+    public async Task OpenOfflineInventoryDialogAsync()
+    {
+        try
+        {
+            var dlg = new OfflineInventoryWindow();
+            if (Application.Current?.MainWindow != null)
+            {
+                dlg.Owner = Application.Current.MainWindow;
+            }
+            dlg.ShowDialog();
+
+            // Tải lại kho nếu đang ở màn hình kho
+            if (IsInventoryView)
+            {
+                await RefreshInventoryAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi mở bộ nhớ đệm nguyên liệu: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

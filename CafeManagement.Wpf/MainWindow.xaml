@@ -1069,6 +1069,18 @@
                             </Button.Resources>
                         </Button>
 
+                        <!-- Nút Quản Lý Bộ Nhớ Đệm Offline (Kho Dự Phòng) -->
+                        <Button Content="💾 Bộ Nhớ Đệm (Offline)" 
+                                Command="{Binding OpenOfflineInventoryDialogCommand}"
+                                Background="#D97706" Foreground="White" FontWeight="Bold" FontSize="13" Padding="14,10" Margin="0,0,10,0" BorderThickness="0" Cursor="Hand"
+                                ToolTip="Xem và nạp nguyên liệu dự phòng vào bộ nhớ đệm máy POS khi mất mạng">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
                         <!-- Nút Làm Mới Thủ Công -->
                         <Button Content="🔄 Làm mới" 
                                 Command="{Binding RefreshInventoryCommand}"

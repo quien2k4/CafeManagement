@@ -62,17 +62,33 @@ public class ProductApiClient
 
     public async Task<List<Topping>> GetToppingsAsync(bool activeOnly = false)
     {
-        var dtos = await _api.GetAsync<List<ToppingDto>>($"/api/products/toppings?activeOnly={activeOnly}");
-        if (dtos == null) return [];
-
-        return dtos.Select(t => new Topping
+        // Khi offline, lập tức lấy từ cache mà không chờ timeout HTTP 15s
+        if (!Offline.OfflineSyncManager.Instance.IsOnline)
         {
-            ToppingId = t.ToppingId,
-            ToppingCode = t.ToppingCode,
-            ToppingName = t.ToppingName,
-            Price = t.Price,
-            IsActive = t.IsActive
-        }).ToList();
+            return Offline.OfflineStorageService.Instance.GetCachedToppings();
+        }
+
+        try
+        {
+            var dtos = await _api.GetAsync<List<ToppingDto>>($"/api/products/toppings?activeOnly={activeOnly}");
+            if (dtos != null && dtos.Count > 0)
+            {
+                return dtos.Select(t => new Topping
+                {
+                    ToppingId = t.ToppingId,
+                    ToppingCode = t.ToppingCode,
+                    ToppingName = t.ToppingName,
+                    Price = t.Price,
+                    IsActive = t.IsActive
+                }).ToList();
+            }
+        }
+        catch
+        {
+            // Mất mạng hoặc lỗi mạng: Tự động trả về danh sách Topping từ Cache cục bộ
+        }
+
+        return Offline.OfflineStorageService.Instance.GetCachedToppings();
     }
 
     public async Task<List<ToppingDto>> GetToppingDtosAsync(bool activeOnly = false)

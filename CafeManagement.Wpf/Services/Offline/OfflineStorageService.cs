@@ -1,7 +1,9 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using CafeManagement.Core.Models;
 using CafeManagement.Core.DTOs.Sync;
+using CafeManagement.Core.DTOs.Inventory;
 
 namespace CafeManagement.Wpf.Services.Offline;
 
@@ -10,6 +12,8 @@ public class MenuCacheData
     public DateTime CachedAt { get; set; } = DateTime.UtcNow;
     public List<ProductCategory> Categories { get; set; } = [];
     public List<Product> Products { get; set; } = [];
+    public List<Topping> Toppings { get; set; } = [];
+    public List<BranchInventoryDto> Inventories { get; set; } = [];
 }
 
 public class OfflineStorageService
@@ -25,7 +29,8 @@ public class OfflineStorageService
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
         WriteIndented = true,
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        ReferenceHandler = ReferenceHandler.IgnoreCycles
     };
 
     public OfflineStorageService()
@@ -136,20 +141,30 @@ public class OfflineStorageService
         }
     }
 
-    // ==================== BỘ NHỚ ĐỆM MENU (CACHE) ====================
+    // ==================== BỘ NHỚ ĐỆM MENU & NGUYÊN LIỆU (CACHE) ====================
 
-    public void SaveMenuCache(List<ProductCategory> categories, List<Product> products)
+    public void SaveMenuCache(
+        List<ProductCategory> categories, 
+        List<Product> products, 
+        List<Topping>? toppings = null,
+        List<BranchInventoryDto>? inventories = null)
     {
         lock (_lock)
         {
             try
             {
+                // Nếu không truyền toppings hoặc inventories mới thì giữ lại bản đang có trong cache
+                var current = GetMenuCache();
+
                 var data = new MenuCacheData
                 {
                     CachedAt = DateTime.UtcNow,
                     Categories = categories,
-                    Products = products
+                    Products = products,
+                    Toppings = toppings ?? current?.Toppings ?? [],
+                    Inventories = inventories ?? current?.Inventories ?? []
                 };
+
                 string json = JsonSerializer.Serialize(data, _jsonOptions);
                 File.WriteAllText(_menuCacheFile, json);
             }
@@ -173,6 +188,145 @@ public class OfflineStorageService
             catch
             {
                 return null;
+            }
+        }
+    }
+
+    public List<Topping> GetCachedToppings()
+    {
+        var cache = GetMenuCache();
+        return cache?.Toppings ?? [];
+    }
+
+    public List<BranchInventoryDto> GetCachedInventories()
+    {
+        var cache = GetMenuCache();
+        return cache?.Inventories ?? [];
+    }
+
+    public void SaveCachedInventories(List<BranchInventoryDto> inventories)
+    {
+        lock (_lock)
+        {
+            try
+            {
+                var current = GetMenuCache() ?? new MenuCacheData();
+                current.CachedAt = DateTime.UtcNow;
+                current.Inventories = inventories;
+                string json = JsonSerializer.Serialize(current, _jsonOptions);
+                File.WriteAllText(_menuCacheFile, json);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Lỗi lưu cache nguyên liệu: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Nhập bổ sung số lượng nguyên liệu trong bộ nhớ đệm khi đang Offline
+    /// </summary>
+    public bool UpdateCachedStock(int ingredientId, decimal quantityToAdd)
+    {
+        lock (_lock)
+        {
+            try
+            {
+                var current = GetMenuCache();
+                if (current == null || current.Inventories == null) return false;
+
+                var item = current.Inventories.FirstOrDefault(i => i.IngredientId == ingredientId);
+                if (item != null)
+                {
+                    item.QuantityOnHand += quantityToAdd;
+                    current.CachedAt = DateTime.UtcNow;
+                    string json = JsonSerializer.Serialize(current, _jsonOptions);
+                    File.WriteAllText(_menuCacheFile, json);
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Lỗi nhập nguyên liệu trong bộ nhớ đệm: {ex.Message}");
+                return false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Đặt lại trực tiếp số lượng tồn kho nguyên liệu trong bộ nhớ đệm
+    /// </summary>
+    public bool SetCachedStock(int ingredientId, decimal newQuantity)
+    {
+        lock (_lock)
+        {
+            try
+            {
+                var current = GetMenuCache();
+                if (current == null || current.Inventories == null) return false;
+
+                var item = current.Inventories.FirstOrDefault(i => i.IngredientId == ingredientId);
+                if (item != null)
+                {
+                    item.QuantityOnHand = Math.Max(0, newQuantity);
+                    current.CachedAt = DateTime.UtcNow;
+                    string json = JsonSerializer.Serialize(current, _jsonOptions);
+                    File.WriteAllText(_menuCacheFile, json);
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Lỗi gán tồn kho bộ nhớ đệm: {ex.Message}");
+                return false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Thêm hoặc cập nhật một nguyên liệu mới vào bộ nhớ đệm
+    /// </summary>
+    public bool AddOrUpdateCachedIngredient(BranchInventoryDto item)
+    {
+        lock (_lock)
+        {
+            try
+            {
+                var current = GetMenuCache() ?? new MenuCacheData();
+                current.CachedAt = DateTime.UtcNow;
+                if (current.Inventories == null) current.Inventories = [];
+
+                var existing = current.Inventories.FirstOrDefault(i =>
+                    (item.IngredientId > 0 && i.IngredientId == item.IngredientId) ||
+                    (!string.IsNullOrEmpty(item.IngredientCode) && i.IngredientCode.Equals(item.IngredientCode, StringComparison.OrdinalIgnoreCase)));
+
+                if (existing != null)
+                {
+                    existing.QuantityOnHand = item.QuantityOnHand;
+                    existing.IngredientName = item.IngredientName;
+                    existing.BaseUom = item.BaseUom;
+                    existing.MinStockAlert = item.MinStockAlert;
+                }
+                else
+                {
+                    if (item.IngredientId <= 0)
+                    {
+                        int maxId = current.Inventories.Count > 0 ? current.Inventories.Max(i => i.IngredientId) : 1000;
+                        item.IngredientId = maxId + 1;
+                    }
+                    current.Inventories.Add(item);
+                }
+
+                string json = JsonSerializer.Serialize(current, _jsonOptions);
+                File.WriteAllText(_menuCacheFile, json);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Lỗi cập nhật nguyên liệu cache: {ex.Message}");
+                return false;
             }
         }
     }

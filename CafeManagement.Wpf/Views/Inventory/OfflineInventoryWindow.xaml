@@ -1,0 +1,246 @@
+<Window x:Class="CafeManagement.Wpf.Views.Inventory.OfflineInventoryWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Quản Lý Bộ Nhớ Đệm Tồn Kho Nguyên Liệu (Offline Cache)" 
+        Height="720" Width="880"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="#F4F6F9"
+        FontFamily="Segoe UI">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /> <!-- Header -->
+            <RowDefinition Height="Auto" /> <!-- Toolbar & Status -->
+            <RowDefinition Height="*" />    <!-- Danh sách nguyên liệu trong cache -->
+            <RowDefinition Height="Auto" /> <!-- Khung Nạp thêm / Cập nhật số lượng -->
+        </Grid.RowDefinitions>
+
+        <!-- 1. Header -->
+        <Border Grid.Row="0" Background="White" CornerRadius="12" Padding="20,16" Margin="0,0,0,15" BorderBrush="#E2E8F0" BorderThickness="1">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="💾" FontSize="22" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="BỘ NHỚ ĐỆM NGUYÊN LIỆU (OFFLINE CACHE)" FontWeight="Bold" FontSize="17" Foreground="#1E293B" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="Quản lý và nạp trước số lượng nguyên liệu dự phòng vào máy POS để bán hàng không bị gián đoạn khi mất kết nối máy chủ." 
+                               FontSize="12" Foreground="#64748B" Margin="32,4,0,0"/>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Trạng thái Mạng -->
+                    <Border Name="BorderNetworkStatus" CornerRadius="8" Padding="12,6" Margin="0,0,10,0" Background="#EAFAF1">
+                        <TextBlock Name="TxtNetworkStatus" Text="🟢 ONLINE" FontWeight="Bold" FontSize="12" Foreground="#27AE60" VerticalAlignment="Center"/>
+                    </Border>
+
+                    <!-- Nút Tải mới từ máy chủ -->
+                    <Button Name="BtnSyncFromServer" Content="🔄 Tải Mới Từ Máy Chủ" Click="BtnSyncFromServer_Click"
+                            Background="#0284C7" Foreground="White" FontWeight="Bold" FontSize="12" Padding="14,8" BorderThickness="0" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="8"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- 2. Toolbar & Tìm kiếm -->
+        <Border Grid.Row="1" Background="White" CornerRadius="10" Padding="14,10" Margin="0,0,0,12" BorderBrush="#E2E8F0" BorderThickness="1">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🔍 Tìm kiếm:" FontWeight="SemiBold" FontSize="13" Foreground="#475569" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Name="TxtSearch" Width="260" Height="34" FontSize="13" Padding="8,4" VerticalContentAlignment="Center" 
+                             BorderBrush="#CBD5E1" TextChanged="TxtSearch_TextChanged"/>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Name="TxtCacheSummary" Text="Tổng: 0 nguyên liệu | Lưu lần cuối: --" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <Button Name="BtnToggleAddNew" Content="➕ Thêm Nguyên Liệu Mới" Click="BtnToggleAddNew_Click"
+                            Background="#F1F5F9" Foreground="#334155" FontWeight="SemiBold" FontSize="12" Padding="12,6" BorderThickness="1" BorderBrush="#CBD5E1" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="6"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Form Thêm Nguyên Liệu Mới (Ẩn mặc định, hiển thị khi bấm Thêm Mới) -->
+        <Border Name="BorderAddNewForm" Grid.Row="1" Background="#FEF9C3" CornerRadius="10" Padding="14,12" Margin="0,0,0,12" BorderBrush="#FDE047" BorderThickness="1" Visibility="Collapsed">
+            <StackPanel>
+                <TextBlock Text="➕ THÊM NGUYÊN LIỆU MỚI VÀO BỘ NHỚ ĐỆM CỤC BỘ" FontWeight="Bold" FontSize="13" Foreground="#854D0E" Margin="0,0,0,8"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="3*" />
+                        <ColumnDefinition Width="1*" />
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                        <TextBlock Text="Mã (VD: CAFE_ROB):" FontSize="11" Foreground="#713F12" Margin="0,0,0,2"/>
+                        <TextBox Name="TxtNewCode" Height="32" VerticalContentAlignment="Center" Padding="6,0"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                        <TextBlock Text="Tên nguyên liệu:" FontSize="11" Foreground="#713F12" Margin="0,0,0,2"/>
+                        <TextBox Name="TxtNewName" Height="32" VerticalContentAlignment="Center" Padding="6,0"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Margin="0,0,8,0">
+                        <TextBlock Text="ĐVT:" FontSize="11" Foreground="#713F12" Margin="0,0,0,2"/>
+                        <TextBox Name="TxtNewUom" Text="g" Height="32" VerticalContentAlignment="Center" Padding="6,0"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="3" Margin="0,0,8,0">
+                        <TextBlock Text="Số lượng nạp:" FontSize="11" Foreground="#713F12" Margin="0,0,0,2"/>
+                        <TextBox Name="TxtNewQuantity" Text="10000" Height="32" VerticalContentAlignment="Center" Padding="6,0"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Bottom">
+                        <Button Content="💾 Lưu Mới" Click="BtnSaveNewIngredient_Click" Background="#CA8A04" Foreground="White" FontWeight="Bold" Height="32" Padding="14,0" BorderThickness="0" Margin="0,0,6,0" Cursor="Hand"/>
+                        <Button Content="Hủy" Click="BtnCancelNew_Click" Background="#E2E8F0" Foreground="#475569" Height="32" Padding="10,0" BorderThickness="0" Cursor="Hand"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- 3. Danh sách nguyên liệu trong Cache -->
+        <Border Grid.Row="2" Background="White" CornerRadius="10" Padding="12" Margin="0,0,0,15" BorderBrush="#E2E8F0" BorderThickness="1">
+            <DataGrid Name="DgCachedInventory" AutoGenerateColumns="False" CanUserAddRows="False"
+                      IsReadOnly="True" GridLinesVisibility="Horizontal" SelectionMode="Single"
+                      HorizontalGridLinesBrush="#F1F5F9" RowHeight="42" FontSize="13"
+                      BorderThickness="0" Background="Transparent" HeadersVisibility="Column"
+                      SelectionChanged="DgCachedInventory_SelectionChanged">
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#F8FAFC"/>
+                        <Setter Property="Foreground" Value="#475569"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Padding" Value="12,8"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#E0F2FE"/>
+                                <Setter Property="Foreground" Value="#0369A1"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Mã NL" Binding="{Binding IngredientCode}" Width="130"/>
+                    <DataGridTextColumn Header="Tên Nguyên Vật Liệu" Binding="{Binding IngredientName}" Width="2.5*"/>
+                    <DataGridTextColumn Header="ĐVT" Binding="{Binding BaseUom}" Width="80"/>
+                    
+                    <DataGridTemplateColumn Header="Tồn Bộ Nhớ Đệm" Width="1.5*">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0">
+                                    <TextBlock Text="{Binding QuantityOnHand, StringFormat='{}{0:N1}'}" FontWeight="Bold" FontSize="14" Foreground="{Binding StockColor}"/>
+                                    <TextBlock Text="{Binding BaseUom}" FontSize="12" Foreground="#64748B" Margin="4,2,0,0"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTemplateColumn Header="Trạng Thái Đệm" Width="1.5*">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border Background="{Binding StatusBackground}" CornerRadius="6" Padding="8,4" HorizontalAlignment="Left" Margin="8,0">
+                                    <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusColor}" FontWeight="SemiBold" FontSize="11"/>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <!-- 4. Khung Nhập Bổ Sung / Điều Chỉnh Số Lượng Dự Phòng -->
+        <Border Grid.Row="3" Background="White" CornerRadius="12" Padding="18,15" BorderBrush="#E2E8F0" BorderThickness="1">
+            <StackPanel>
+                <DockPanel Margin="0,0,0,10">
+                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="⚡ NẠP DỰ PHÒNG VÀO BỘ NHỚ ĐỆM:" FontWeight="Bold" FontSize="14" Foreground="#1E293B"/>
+                        <TextBlock Name="TxtSelectedIngredientLabel" Text="(Vui lòng chọn 1 nguyên liệu ở bảng trên)" FontWeight="SemiBold" FontSize="14" Foreground="#0284C7" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <TextBlock Text="Hỗ trợ phép nhân: VD 330*24" FontSize="11" Foreground="#94A3B8" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                </DockPanel>
+
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Ô nhập số lượng -->
+                    <DockPanel Grid.Column="0" Margin="0,0,12,0">
+                        <Border DockPanel.Dock="Right" Background="#F1F5F9" CornerRadius="0,6,6,0" Padding="12,0">
+                            <TextBlock Name="TxtInputUom" Text="g" FontWeight="Bold" FontSize="14" Foreground="#0284C7" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBox Name="TxtQuantityToAdd" Height="42" FontSize="16" FontWeight="Bold" Padding="12,0" 
+                                 VerticalContentAlignment="Center" BorderBrush="#CBD5E1" 
+                                 ToolTip="Nhập số lượng nạp thêm (VD: 5000 hoặc 330*24)"/>
+                    </DockPanel>
+
+                    <!-- Nút Nạp Bổ Sung (Cộng dồn) -->
+                    <Button Name="BtnAddStock" Grid.Column="1" Content="➕ NẠP BỔ SUNG VÀO CACHE" Click="BtnAddStock_Click"
+                            Background="#16A34A" Foreground="White" FontWeight="Bold" FontSize="13" Padding="20,10" Margin="0,0,8,0" BorderThickness="0" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="8"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+
+                    <!-- Nút Ghi Đè Trực Tiếp -->
+                    <Button Name="BtnSetStock" Grid.Column="2" Content="📝 Gán Số Lượng Này" Click="BtnSetStock_Click"
+                            Background="#F59E0B" Foreground="White" FontWeight="Bold" FontSize="13" Padding="14,10" BorderThickness="0" Cursor="Hand" ToolTip="Đặt số lượng tồn kho trong bộ nhớ đệm chính xác bằng số này">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="8"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </Grid>
+
+                <!-- Thanh nạp nhanh -->
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Nạp nhanh:" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <Button Content="+ 1,000" Click="QuickAdd_Click" Tag="1000" Padding="10,4" Margin="0,0,6,0" Background="#F1F5F9" Foreground="#334155" FontSize="12" Cursor="Hand" BorderThickness="0"/>
+                        <Button Content="+ 5,000" Click="QuickAdd_Click" Tag="5000" Padding="10,4" Margin="0,0,6,0" Background="#F1F5F9" Foreground="#334155" FontSize="12" Cursor="Hand" BorderThickness="0"/>
+                        <Button Content="+ 10,000" Click="QuickAdd_Click" Tag="10000" Padding="10,4" Margin="0,0,6,0" Background="#F1F5F9" Foreground="#334155" FontSize="12" Cursor="Hand" BorderThickness="0"/>
+                        <Button Content="+ 50,000" Click="QuickAdd_Click" Tag="50000" Padding="10,4" Margin="0,0,6,0" Background="#F1F5F9" Foreground="#334155" FontSize="12" Cursor="Hand" BorderThickness="0"/>
+                        <Button Content="× 24 (Thùng)" Click="QuickMultiply_Click" Tag="24" Padding="10,4" Margin="0,0,6,0" Background="#F1F5F9" Foreground="#334155" FontSize="12" Cursor="Hand" BorderThickness="0"/>
+                    </StackPanel>
+
+                    <Button DockPanel.Dock="Right" Content="Đóng Hộp Thoại" Click="BtnClose_Click"
+                            Background="#E2E8F0" Foreground="#475569" FontWeight="SemiBold" FontSize="12" Padding="16,6" BorderThickness="0" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="6"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </DockPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
