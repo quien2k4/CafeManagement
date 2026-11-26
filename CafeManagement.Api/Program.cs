@@ -24,6 +24,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<CafeDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Bộ nhớ đệm In-Memory cho AI và dữ liệu tĩnh
+builder.Services.AddMemoryCache();
+
 // Đăng ký Business Services
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IBranchesService, BranchService>();

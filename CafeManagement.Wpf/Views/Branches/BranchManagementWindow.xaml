@@ -1,0 +1,194 @@
+<Window x:Class="CafeManagement.Wpf.Views.Branches.BranchManagementWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="🏢 Quản Lý Hệ Thống Chi Nhánh Chuỗi Cà Phê" 
+        Height="650" Width="950"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="#F4F6F9"
+        FontFamily="Segoe UI">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /> <!-- Header -->
+            <RowDefinition Height="Auto" /> <!-- Toolbar -->
+            <RowDefinition Height="*" />    <!-- DataGrid -->
+            <RowDefinition Height="Auto" /> <!-- Footer -->
+        </Grid.RowDefinitions>
+
+        <!-- 1. Header -->
+        <Border Grid.Row="0" Background="White" CornerRadius="12" Padding="20,16" Margin="0,0,0,15" BorderBrush="#E2E8F0" BorderThickness="1">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="🏢" FontSize="22" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="QUẢN LÝ HỆ THỐNG CHI NHÁNH CHUỖI" FontWeight="Bold" FontSize="17" Foreground="#1E293B" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="Thiết lập các điểm bán, thông tin liên hệ và trạng thái hoạt động của từng chi nhánh." 
+                               FontSize="12" Foreground="#64748B" Margin="32,4,0,0"/>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Name="BtnAddNewBranch" Content="+ Thêm Chi Nhánh Mới" Click="BtnAddNewBranch_Click"
+                            Background="#16A34A" Foreground="White" FontWeight="Bold" FontSize="13" Padding="18,10" BorderThickness="0" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="8"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- 2. Toolbar & Tìm kiếm -->
+        <Border Grid.Row="1" Background="White" CornerRadius="10" Padding="14,10" Margin="0,0,0,12" BorderBrush="#E2E8F0" BorderThickness="1">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🔍 Tìm kiếm:" FontWeight="SemiBold" FontSize="13" Foreground="#475569" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Name="TxtSearch" Width="280" Height="34" FontSize="13" Padding="8,4" VerticalContentAlignment="Center" 
+                             BorderBrush="#CBD5E1" TextChanged="TxtSearch_TextChanged"/>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Name="TxtSummary" Text="Tổng số: 0 chi nhánh | Đang hoạt động: 0" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <Button Content="🔄 Làm mới" Click="BtnRefresh_Click"
+                            Background="#F1F5F9" Foreground="#334155" FontWeight="SemiBold" FontSize="12" Padding="14,6" BorderThickness="1" BorderBrush="#CBD5E1" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="6"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- 3. Danh sách Chi Nhánh DataGrid -->
+        <Border Grid.Row="2" Background="White" CornerRadius="10" Padding="12" Margin="0,0,0,15" BorderBrush="#E2E8F0" BorderThickness="1">
+            <DataGrid Name="DgBranches" AutoGenerateColumns="False" CanUserAddRows="False"
+                      IsReadOnly="True" GridLinesVisibility="Horizontal" SelectionMode="Single"
+                      HorizontalGridLinesBrush="#F1F5F9" RowHeight="46" FontSize="13"
+                      BorderThickness="0" Background="Transparent" HeadersVisibility="Column"
+                      MouseDoubleClick="DgBranches_MouseDoubleClick">
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#F8FAFC"/>
+                        <Setter Property="Foreground" Value="#475569"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Padding" Value="12,10"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#F0FDF4"/>
+                                <Setter Property="Foreground" Value="#15803D"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Mã CN" Binding="{Binding BranchCode}" Width="100">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="Foreground" Value="#0284C7"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Margin" Value="10,0"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="Tên Chi Nhánh" Binding="{Binding BranchName}" Width="2*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="Foreground" Value="#1E293B"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="Địa Chỉ" Binding="{Binding Address}" Width="3*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#475569"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="Hotline / SĐT" Binding="{Binding Phone}" Width="120">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#1E293B"/>
+                                <Setter Property="FontWeight" Value="Medium"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTemplateColumn Header="Trạng Thái" Width="140">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border Background="{Binding StatusBackground}" CornerRadius="6" Padding="8,4" HorizontalAlignment="Left" Margin="8,0">
+                                    <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusColor}" FontWeight="Bold" FontSize="11"/>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTemplateColumn Header="Thao Tác" Width="170">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="5,0">
+                                    <Button Content="✏️ Sửa" Click="BtnEditRow_Click" Tag="{Binding}"
+                                            Background="#E0F2FE" Foreground="#0284C7" FontWeight="SemiBold" FontSize="11" Padding="8,4" Margin="0,0,6,0" BorderThickness="0" Cursor="Hand">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="4"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+
+                                    <Button Content="{Binding ToggleButtonText}" Click="BtnToggleRow_Click" Tag="{Binding}"
+                                            Background="{Binding ToggleButtonBackground}" Foreground="{Binding ToggleButtonForeground}" 
+                                            FontWeight="SemiBold" FontSize="11" Padding="8,4" BorderThickness="0" Cursor="Hand">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="4"/>
+                                            </Style>
+                                        </Button.Resources>
+                                    </Button>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <!-- 4. Footer -->
+        <DockPanel Grid.Row="3">
+            <TextBlock Text="💡 Mẹo: Nhấp đúp chuột vào bất kỳ dòng nào để mở hộp thoại chỉnh sửa chi nhánh nhanh." 
+                       FontSize="12" Foreground="#94A3B8" FontStyle="Italic" VerticalAlignment="Center"/>
+            <Button Content="Đóng Hộp Thoại" Click="BtnClose_Click" HorizontalAlignment="Right"
+                    Background="#E2E8F0" Foreground="#475569" FontWeight="SemiBold" FontSize="12" Padding="18,8" BorderThickness="0" Cursor="Hand">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="6"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
+        </DockPanel>
+    </Grid>
+</Window>

@@ -14,4 +14,5 @@ public interface IProductService
     Task<ToppingDto?> GetToppingByIdAsync(int id);
     Task<ToppingDto> CreateToppingAsync(ToppingCreateRequest req);
     Task<ToppingDto?> UpdateToppingAsync(int id, ToppingUpdateRequest req);
+    Task<List<ToppingRecommendationDto>> GetRecommendedToppingsAsync(int productId, int limit = 3);
 }

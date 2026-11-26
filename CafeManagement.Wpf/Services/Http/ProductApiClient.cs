@@ -97,6 +97,25 @@ public class ProductApiClient
         return dtos ?? [];
     }
 
+    public async Task<List<ToppingRecommendationDto>> GetRecommendedToppingsAsync(int productId, int limit = 3)
+    {
+        // Khi Offline, bỏ qua AI ngay lập tức mà không chờ timeout
+        if (!Offline.OfflineSyncManager.Instance.IsOnline)
+        {
+            return [];
+        }
+
+        try
+        {
+            var list = await _api.GetAsync<List<ToppingRecommendationDto>>($"/api/products/{productId}/recommended-toppings?limit={limit}");
+            return list ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
     public async Task<ToppingDto?> CreateToppingAsync(ToppingCreateRequest req)
     {
         return await _api.PostAsync<ToppingCreateRequest, ToppingDto>("/api/products/toppings", req);

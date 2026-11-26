@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CafeManagement.Core.DTOs.Toppings;
 using CafeManagement.Core.Models;
 
 namespace CafeManagement.Wpf.ViewModels;
@@ -25,6 +26,15 @@ public partial class ToppingSelectionItem : ObservableObject
     private int _quantity = 1;
 
     public decimal TotalPrice => Topping.Price * Quantity;
+
+    // Thông tin Đề xuất AI
+    public decimal RecommendationPercentage { get; set; } = 0;
+    public bool HasRecommendation => RecommendationPercentage > 0;
+    public string BadgeText => RecommendationPercentage >= 30 
+        ? $"🔥 {RecommendationPercentage:0.#}% khách chọn" 
+        : $"⭐ {RecommendationPercentage:0.#}% khách chọn";
+    public string BadgeColor => RecommendationPercentage >= 30 ? "#D97706" : "#0284C7";
+    public string BadgeBackground => RecommendationPercentage >= 30 ? "#FEF3C7" : "#E0F2FE";
 }
 
 public partial class CustomizeProductViewModel : ObservableObject
@@ -54,6 +64,13 @@ public partial class CustomizeProductViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<ToppingSelectionItem> _toppings = [];
 
+    // Danh sách đề xuất AI
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasAiRecommendations))]
+    private ObservableCollection<ToppingRecommendationDto> _aiRecommendations = [];
+
+    public bool HasAiRecommendations => AiRecommendations.Count > 0;
+
     public ProductVariant? SelectedVariant => VariantItems.FirstOrDefault(v => v.IsSelected)?.Variant;
 
     public decimal UnitPrice
@@ -69,10 +86,15 @@ public partial class CustomizeProductViewModel : ObservableObject
 
     public decimal TotalPrice => UnitPrice * Quantity;
 
-    public CustomizeProductViewModel(Product product, List<Topping> availableToppings, CartItemViewModel? editItem = null)
+    public CustomizeProductViewModel(
+        Product product, 
+        List<Topping> availableToppings, 
+        CartItemViewModel? editItem = null,
+        List<ToppingRecommendationDto>? recommendations = null)
     {
         _product = product;
         _isEditMode = editItem != null;
+        _aiRecommendations = new ObservableCollection<ToppingRecommendationDto>(recommendations ?? []);
 
         // 1. Khởi tạo danh sách Size và chỉ chọn duy nhất 1 Size (mặc định là Size M)
         var variants = new List<VariantSelectionItem>();
@@ -116,11 +138,20 @@ public partial class CustomizeProductViewModel : ObservableObject
             _quantity = editItem.Quantity;
         }
 
-        // 3. Khởi tạo Topping kèm số lượng (mặc định 1 khi tích chọn)
+        // 3. Khởi tạo Topping kèm thông tin AI và sắp xếp Topping đề xuất lên đầu
+        var recDict = (recommendations ?? []).ToDictionary(r => r.ToppingId, r => r.Percentage);
+
         var toppingItems = new List<ToppingSelectionItem>();
         foreach (var t in availableToppings)
         {
-            var item = new ToppingSelectionItem { Topping = t, IsSelected = false, Quantity = 1 };
+            decimal pct = recDict.TryGetValue(t.ToppingId, out decimal p) ? p : 0;
+            var item = new ToppingSelectionItem 
+            { 
+                Topping = t, 
+                IsSelected = false, 
+                Quantity = 1,
+                RecommendationPercentage = pct
+            };
 
             if (editItem != null)
             {
@@ -152,7 +183,26 @@ public partial class CustomizeProductViewModel : ObservableObject
             toppingItems.Add(item);
         }
 
+        // Ưu tiên đưa Topping được AI đề xuất lên trên cùng
+        toppingItems = toppingItems
+            .OrderByDescending(t => t.RecommendationPercentage)
+            .ThenBy(t => t.Topping.ToppingName)
+            .ToList();
+
         _toppings = new ObservableCollection<ToppingSelectionItem>(toppingItems);
+    }
+
+    [RelayCommand]
+    public void QuickAddTopping(ToppingRecommendationDto rec)
+    {
+        var item = Toppings.FirstOrDefault(t => t.Topping.ToppingId == rec.ToppingId);
+        if (item != null)
+        {
+            item.IsSelected = true;
+            if (item.Quantity < 1) item.Quantity = 1;
+            OnPropertyChanged(nameof(UnitPrice));
+            OnPropertyChanged(nameof(TotalPrice));
+        }
     }
 
     [RelayCommand]

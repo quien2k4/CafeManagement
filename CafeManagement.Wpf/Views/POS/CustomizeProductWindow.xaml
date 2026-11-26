@@ -120,10 +120,55 @@
                     </StackPanel>
                 </Border>
 
-                <!-- 4. THÊM TOPPING (CÓ NÚT CỘNG TRỪ SỐ LƯỢNG MẶC ĐỊNH LÀ 1) -->
+                <!-- 4. THÊM TOPPING (CÓ GỢI Ý AI NỔI BẬT) -->
                 <Border Background="White" CornerRadius="10" Padding="15" Margin="0,0,0,12" BorderBrush="#E9ECEF" BorderThickness="1">
                     <StackPanel>
-                        <TextBlock Text="4. THÊM TOPPING" FontWeight="Bold" FontSize="13" Foreground="#7F8C8D" Margin="0,0,0,10"/>
+                        <!-- Khung AI Gợi Ý (Chỉ hiện khi có đề xuất) -->
+                        <Border Background="#F0FDF4" CornerRadius="8" Padding="12,10" Margin="0,0,0,12" BorderBrush="#BBF7D0" BorderThickness="1"
+                                Visibility="{Binding HasAiRecommendations, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,8">
+                                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="🤖" FontSize="15" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="AI ĐỀ XUẤT TOPPING PHÙ HỢP NHẤT" FontWeight="Bold" FontSize="12" Foreground="#15803D" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Dựa trên hành vi khách hàng" FontSize="11" Foreground="#16A34A" FontStyle="Italic" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                                </DockPanel>
+
+                                <!-- Danh sách các nút chọn nhanh 1-click -->
+                                <ItemsControl ItemsSource="{Binding AiRecommendations}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Command="{Binding DataContext.QuickAddToppingCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}"
+                                                    Background="White" BorderBrush="#86EFAC" BorderThickness="1"
+                                                    Padding="10,6" Margin="0,0,8,6" Cursor="Hand" ToolTip="Nhấp vào để chọn nhanh Topping này">
+                                                <Button.Resources>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="CornerRadius" Value="6"/>
+                                                    </Style>
+                                                </Button.Resources>
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="✨" Margin="0,0,4,0" FontSize="11"/>
+                                                    <TextBlock Text="{Binding ToppingName}" FontWeight="SemiBold" FontSize="12" Foreground="#166534"/>
+                                                    <Border Background="#DCFCE7" CornerRadius="4" Padding="4,1" Margin="6,0,0,0">
+                                                        <TextBlock Text="{Binding BadgeText}" FontSize="10" FontWeight="Bold" Foreground="#15803D"/>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Price, StringFormat=' (+{0:N0} đ)'}" FontSize="11" Foreground="#15803D" Margin="2,0,0,0"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="4. DANH SÁCH TOPPING" FontWeight="Bold" FontSize="13" Foreground="#7F8C8D" Margin="0,0,0,10"/>
                         <ItemsControl ItemsSource="{Binding Toppings}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -139,8 +184,14 @@
                                             <!-- Checkbox chọn Topping -->
                                             <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Margin="0,0,8,0" Cursor="Hand"/>
 
-                                            <!-- Tên Topping -->
-                                            <TextBlock Grid.Column="1" Text="{Binding Topping.ToppingName}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                                            <!-- Tên Topping kèm Huy hiệu AI đề xuất -->
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Topping.ToppingName}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                                                <Border Background="{Binding BadgeBackground}" CornerRadius="4" Padding="6,2" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                        Visibility="{Binding HasRecommendation, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock Text="{Binding BadgeText}" Foreground="{Binding BadgeColor}" FontWeight="Bold" FontSize="10"/>
+                                                </Border>
+                                            </StackPanel>
 
                                             <!-- Nút Cộng/Trừ số lượng Topping (chỉ hiện khi tích chọn) -->
                                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0"

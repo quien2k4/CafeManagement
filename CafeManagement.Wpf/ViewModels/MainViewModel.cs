@@ -116,6 +116,7 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CanAccessCustomer))]
     [NotifyPropertyChangedFor(nameof(CanBrowseVouchers))]
     [NotifyPropertyChangedFor(nameof(CanAccessEmployee))]
+    [NotifyPropertyChangedFor(nameof(CanAccessBranchManagement))]
     private UserSession _currentSession = new();
 
     public bool CanAccessPos => CurrentSession.CanAccessPos;
@@ -126,6 +127,7 @@ public partial class MainViewModel : ObservableObject
     public bool CanAccessCustomer => CurrentSession.IsOwnerOrAdmin || CurrentSession.RoleCode == "BRANCH_MANAGER";
     public bool CanBrowseVouchers => CurrentSession.IsOwnerOrAdmin || CurrentSession.RoleCode == "BRANCH_MANAGER";
     public bool CanAccessEmployee => CurrentSession.IsOwnerOrAdmin || CurrentSession.RoleCode == "BRANCH_MANAGER";
+    public bool CanAccessBranchManagement => CurrentSession.IsOwnerOrAdmin;
 
     public event Action? RequestLogout;
 
@@ -737,6 +739,8 @@ public partial class MainViewModel : ObservableObject
         try
         {
             List<Topping> toppings;
+            List<ToppingRecommendationDto> recommendations = [];
+
             if (!OfflineSyncManager.Instance.IsOnline)
             {
                 toppings = OfflineStorageService.Instance.GetCachedToppings();
@@ -744,9 +748,14 @@ public partial class MainViewModel : ObservableObject
             else
             {
                 toppings = await ProductApiClient.Instance.GetToppingsAsync(activeOnly: true);
+                try
+                {
+                    recommendations = await ProductApiClient.Instance.GetRecommendedToppingsAsync(product.ProductId, 3);
+                }
+                catch { }
             }
 
-            var vm = new CustomizeProductViewModel(product, toppings);
+            var vm = new CustomizeProductViewModel(product, toppings, null, recommendations);
 
             var dialog = new CustomizeProductWindow(vm);
             if (Application.Current?.MainWindow != null)
@@ -796,6 +805,8 @@ public partial class MainViewModel : ObservableObject
         try
         {
             List<Topping> toppings;
+            List<ToppingRecommendationDto> recommendations = [];
+
             if (!OfflineSyncManager.Instance.IsOnline)
             {
                 toppings = OfflineStorageService.Instance.GetCachedToppings();
@@ -803,9 +814,14 @@ public partial class MainViewModel : ObservableObject
             else
             {
                 toppings = await ProductApiClient.Instance.GetToppingsAsync(activeOnly: true);
+                try
+                {
+                    recommendations = await ProductApiClient.Instance.GetRecommendedToppingsAsync(item.Product.ProductId, 3);
+                }
+                catch { }
             }
 
-            var vm = new CustomizeProductViewModel(item.Product, toppings, item);
+            var vm = new CustomizeProductViewModel(item.Product, toppings, item, recommendations);
 
             var dialog = new CustomizeProductWindow(vm);
             if (Application.Current?.MainWindow != null)
@@ -1676,6 +1692,24 @@ public partial class MainViewModel : ObservableObject
         }
         window.ShowDialog();
         _ = RefreshInventoryAsync();
+    }
+
+    // Mở Quản lý hệ thống chi nhánh chuỗi (Chỉ dành cho Admin)
+    [RelayCommand]
+    public void OpenBranchManagement()
+    {
+        if (!CanAccessBranchManagement)
+        {
+            MessageBox.Show("Chỉ Quản trị viên (Chủ chuỗi / Admin) mới có quyền quản lý và thiết lập chi nhánh!", "Từ chối truy cập", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var dlg = new CafeManagement.Wpf.Views.Branches.BranchManagementWindow();
+        if (Application.Current?.MainWindow != null)
+        {
+            dlg.Owner = Application.Current.MainWindow;
+        }
+        dlg.ShowDialog();
     }
 
     // Mở hộp thoại Nhập kho nhanh

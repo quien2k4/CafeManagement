@@ -143,4 +143,18 @@ public class ProductsController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { message = $"Lỗi khi cập nhật Topping: {ex.Message}" });
         }
     }
+
+    [HttpGet("{id:int}/recommended-toppings")]
+    public async Task<ActionResult<List<ToppingRecommendationDto>>> GetRecommendedToppings(int id, [FromQuery] int limit = 3)
+    {
+        try
+        {
+            var list = await _productService.GetRecommendedToppingsAsync(id, limit);
+            return Ok(list);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = $"Lỗi đề xuất Topping: {ex.Message}" });
+        }
+    }
 }

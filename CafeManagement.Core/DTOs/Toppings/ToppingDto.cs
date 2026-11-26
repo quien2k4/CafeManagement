@@ -44,3 +44,15 @@ public class ToppingUpdateRequest
     public bool IsActive { get; set; } = true;
     public List<ToppingRecipeDetailItem> RecipeDetails { get; set; } = [];
 }
+
+public class ToppingRecommendationDto
+{
+    public int ToppingId { get; set; }
+    public string ToppingCode { get; set; } = string.Empty;
+    public string ToppingName { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public decimal Percentage { get; set; } // Ví dụ: 42.5 nghĩa là 42.5%
+    public int OrderCount { get; set; }     // Số lần món chính đi kèm topping này
+    public string BadgeText => $"{Percentage:0.#}% khách chọn";
+    public bool IsTopPick => Percentage >= 30;
+}

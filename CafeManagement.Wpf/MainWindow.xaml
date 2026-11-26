@@ -63,8 +63,22 @@
 
                         <TextBlock Text="👤 Đang làm việc:" Foreground="#8A8A9E" FontSize="11"/>
                         <TextBlock Text="{Binding CurrentCashier}" Foreground="White" FontWeight="SemiBold" FontSize="13" Margin="0,2,0,5" TextWrapping="Wrap"/>
-                        <TextBlock Text="📍 Chi nhánh:" Foreground="#8A8A9E" FontSize="11"/>
-                        <TextBlock Text="{Binding BranchName}" Foreground="#FFA726" FontWeight="SemiBold" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,12"/>
+                        <DockPanel Margin="0,2,0,2">
+                            <TextBlock Text="📍 Chi nhánh:" Foreground="#8A8A9E" FontSize="11" VerticalAlignment="Center"/>
+                            <Button Content="⚙️ Quản lý" 
+                                    Command="{Binding OpenBranchManagementCommand}"
+                                    Visibility="{Binding CanAccessBranchManagement, Converter={StaticResource BoolToVis}}"
+                                    DockPanel.Dock="Right" HorizontalAlignment="Right"
+                                    Background="#232336" Foreground="#60A5FA" FontSize="10" FontWeight="SemiBold"
+                                    Padding="6,2" BorderThickness="0" Cursor="Hand" ToolTip="Quản lý và thêm chi nhánh mới (Chỉ Admin)">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="4"/>
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
+                        </DockPanel>
+                        <TextBlock Text="{Binding BranchName}" Foreground="#FFA726" FontWeight="SemiBold" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12"/>
 
                         <!-- Nút Đăng xuất -->
                         <Button Content="🚪 Đăng Xuất (Đổi ca)" 
@@ -2803,6 +2817,18 @@
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Content="📊 Phân Tích Lưu Lượng &amp; Nhân Sự" Command="{Binding OpenStaffingAnalyticsDialogCommand}"
                                 Background="#6B46C1" Foreground="White" FontWeight="Bold" FontSize="12"
+                                Padding="14,8" BorderThickness="0" Cursor="Hand" Margin="0,0,10,0">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="6"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+
+                        <!-- Nút Quản Lý Chi Nhánh Chuỗi (Chỉ Admin) -->
+                        <Button Content="🏢 Quản Lý Chi Nhánh" Command="{Binding OpenBranchManagementCommand}"
+                                Visibility="{Binding CanAccessBranchManagement, Converter={StaticResource BoolToVis}}"
+                                Background="#0D9488" Foreground="White" FontWeight="Bold" FontSize="12"
                                 Padding="14,8" BorderThickness="0" Cursor="Hand" Margin="0,0,10,0">
                             <Button.Resources>
                                 <Style TargetType="Border">
